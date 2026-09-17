@@ -1,0 +1,154 @@
+{
+  "appName": {
+    "message": "YouTube Audio Player"
+  },
+  "appDesc": {
+    "message": "Explora música y type beats más fácilmente en YouTube: lista de pistas compacta y reproductor flotante, sin salir de la página."
+  },
+  "actionTitle": {
+    "message": "Activar / desactivar el modo lista"
+  },
+  "toggleTitle": {
+    "message": "Activar / desactivar la lista de pistas (YouTube Audio Player)"
+  },
+  "toggleLabel": {
+    "message": "Modo lista"
+  },
+  "tracklistRegion": {
+    "message": "Lista de pistas — YouTube Audio Player"
+  },
+  "columnTitle": {
+    "message": "TÍTULO"
+  },
+  "columnArtist": {
+    "message": "ARTISTA"
+  },
+  "columnDuration": {
+    "message": "Duración"
+  },
+  "trackByArtist": {
+    "message": "$arg1$ de $arg2$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      },
+      "arg2": {
+        "content": "$2"
+      }
+    }
+  },
+  "playTrack": {
+    "message": "Reproducir $arg1$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "openOnYouTube": {
+    "message": "Abrir en YouTube"
+  },
+  "trackCountOne": {
+    "message": "$arg1$ pista",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "trackCountMany": {
+    "message": "$arg1$ pistas",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "playerRegion": {
+    "message": "Reproductor"
+  },
+  "playerFrame": {
+    "message": "Reproductor de YouTube"
+  },
+  "noTrack": {
+    "message": "— Ninguna pista —"
+  },
+  "closePlayer": {
+    "message": "Cerrar el reproductor"
+  },
+  "videoQuality": {
+    "message": "Calidad de vídeo"
+  },
+  "qualityAuto": {
+    "message": "Auto"
+  },
+  "openVideo": {
+    "message": "Abrir el vídeo en YouTube"
+  },
+  "openChannel": {
+    "message": "Abrir el canal $arg1$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "riptuneSend": {
+    "message": "Descargar y analizar con Riptune"
+  },
+  "riptuneSent": {
+    "message": "Enviado a Riptune"
+  },
+  "riptuneNotInstalled": {
+    "message": "Riptune no está instalado: abriendo riptune.app"
+  },
+  "riptuneError": {
+    "message": "No se encuentra Riptune"
+  },
+  "repeatOn": {
+    "message": "Repetir la pista (R)"
+  },
+  "repeatOff": {
+    "message": "Dejar de repetir (R)"
+  },
+  "previous": {
+    "message": "Anterior (Shift+←)"
+  },
+  "next": {
+    "message": "Siguiente (Shift+→)"
+  },
+  "skipBack": {
+    "message": "Retroceder $arg1$ s (←)",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "skipForward": {
+    "message": "Avanzar $arg1$ s (→)",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "playPause": {
+    "message": "Reproducir / pausa (Espacio)"
+  },
+  "seekPosition": {
+    "message": "Posición de reproducción"
+  },
+  "volume": {
+    "message": "Volumen"
+  },
+  "mute": {
+    "message": "Silenciar (M)"
+  },
+  "unmute": {
+    "message": "Activar sonido (M)"
+  },
+  "videoUnavailable": {
+    "message": "Vídeo no disponible"
+  }
+}

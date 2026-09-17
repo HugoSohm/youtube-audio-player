@@ -1,0 +1,154 @@
+{
+  "appName": {
+    "message": "YouTube Audio Player"
+  },
+  "appDesc": {
+    "message": "Browse music and type beats more easily on YouTube: a compact tracklist and a floating player, without leaving the page."
+  },
+  "actionTitle": {
+    "message": "Turn List mode on / off"
+  },
+  "toggleTitle": {
+    "message": "Turn the tracklist on / off (YouTube Audio Player)"
+  },
+  "toggleLabel": {
+    "message": "List mode"
+  },
+  "tracklistRegion": {
+    "message": "Tracklist — YouTube Audio Player"
+  },
+  "columnTitle": {
+    "message": "TITLE"
+  },
+  "columnArtist": {
+    "message": "ARTIST"
+  },
+  "columnDuration": {
+    "message": "Duration"
+  },
+  "trackByArtist": {
+    "message": "$arg1$ by $arg2$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      },
+      "arg2": {
+        "content": "$2"
+      }
+    }
+  },
+  "playTrack": {
+    "message": "Play $arg1$",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "openOnYouTube": {
+    "message": "Open on YouTube"
+  },
+  "trackCountOne": {
+    "message": "$arg1$ track",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "trackCountMany": {
+    "message": "$arg1$ tracks",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "playerRegion": {
+    "message": "Player"
+  },
+  "playerFrame": {
+    "message": "YouTube player"
+  },
+  "noTrack": {
+    "message": "— No track —"
+  },
+  "closePlayer": {
+    "message": "Close player"
+  },
+  "videoQuality": {
+    "message": "Video quality"
+  },
+  "qualityAuto": {
+    "message": "Auto"
+  },
+  "openVideo": {
+    "message": "Open the video on YouTube"
+  },
+  "openChannel": {
+    "message": "Open the $arg1$ channel",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "riptuneSend": {
+    "message": "Download and analyze with Riptune"
+  },
+  "riptuneSent": {
+    "message": "Sent to Riptune"
+  },
+  "riptuneNotInstalled": {
+    "message": "Riptune is not installed: opening riptune.app"
+  },
+  "riptuneError": {
+    "message": "Riptune not found"
+  },
+  "repeatOn": {
+    "message": "Repeat track (R)"
+  },
+  "repeatOff": {
+    "message": "Stop repeating (R)"
+  },
+  "previous": {
+    "message": "Previous (Shift+←)"
+  },
+  "next": {
+    "message": "Next (Shift+→)"
+  },
+  "skipBack": {
+    "message": "Back $arg1$ s (←)",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "skipForward": {
+    "message": "Forward $arg1$ s (→)",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "playPause": {
+    "message": "Play / pause (Space)"
+  },
+  "seekPosition": {
+    "message": "Playback position"
+  },
+  "volume": {
+    "message": "Volume"
+  },
+  "mute": {
+    "message": "Mute (M)"
+  },
+  "unmute": {
+    "message": "Unmute (M)"
+  },
+  "videoUnavailable": {
+    "message": "Video unavailable"
+  }
+}

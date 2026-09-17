@@ -1,0 +1,392 @@
+// ============================================================
+// styles/tracklist.scss — Tracklist Spotify native (no card)
+// ============================================================
+// Design identique au screenshot Spotify :
+//   - Fond transparent (s'intègre au fond sombre de YouTube)
+//   - Pas de card, pas de bordure, pas de padding conteneur
+//   - Lignes denses avec numéro | thumb | titre+artiste | durée
+//   - Hover : légère surbrillance + bouton play remplace le numéro
+// ============================================================
+
+@use 'sass:color';
+@use './variables' as *;
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+// ── Conteneur racine — transparent, s'intègre à YouTube ──────
+#ytp-tracklist-root {
+  font-family: $font-family;
+  color: $text-primary;
+  // Pas de background, pas de border, pas de border-radius
+  // On s'adapte au fond sombre natif de YouTube
+  padding-bottom: 24px; // le player est un widget flottant en coin, plus de barre pleine largeur
+  animation: ytp-fadein 0.3s ease both;
+
+  * {
+    box-sizing: border-box;
+  }
+}
+
+// ── Rendu natif masqué (classe posée sur <html> par tracklist.ts) ──
+// On masque tout SAUF le bloc de chargement "continuation" : il se retrouve
+// juste sous la tracklist et déclenche l'infinite scroll natif de YouTube.
+html.ytp-native-hidden {
+  // Recherche + chaîne
+  ytd-section-list-renderer > :not(#contents),
+  ytd-section-list-renderer > #contents > :not(ytd-continuation-item-renderer, :has(ytd-playlist-video-list-renderer)),
+  ytd-rich-grid-renderer > :not(#contents),
+  ytd-rich-grid-renderer > #contents > :not(ytd-continuation-item-renderer),
+
+  // Playlist, interface classique : la continuation est dans la liste de la playlist
+  ytd-item-section-renderer:has(ytd-playlist-video-list-renderer) > :not(#contents),
+  ytd-item-section-renderer:has(ytd-playlist-video-list-renderer) > #contents > :not(ytd-playlist-video-list-renderer),
+  ytd-playlist-video-list-renderer > :not(#contents),
+  ytd-playlist-video-list-renderer > #contents > :not(ytd-continuation-item-renderer),
+
+  // Playlist, nouvelle interface : chaque vidéo et la continuation sont dans un <div>
+  yt-section-list-renderer > :not(.ytSectionListRendererContents),
+  yt-item-section-renderer > :not(#contents),
+  yt-item-section-renderer > #contents > :not(:has(> yt-continuation-item-view-model)) {
+    display: none !important;
+  }
+}
+
+@keyframes ytp-fadein {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+// ── Header — discret, comme Spotify ──────────────────────────
+// On masque le header visuel (pas de gros bloc décoratif)
+.ytp-tl-header {
+  display: none;
+}
+
+// ── En-tête de colonnes — comme Spotify (très subtil) ────────
+.ytp-tl-table {
+  width: 100%;
+}
+
+.ytp-tl-thead {
+  display: grid;
+  // #  |  thumb+info (flex)  |  artiste mid  |  durée  |  lien
+  grid-template-columns: 52px 1fr 180px 60px 40px;
+  align-items: center;
+  padding: 0 16px 0 16px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  padding-bottom: 8px;
+}
+
+.ytp-tl-th {
+  font-size: 11px;
+  font-weight: 400;
+  color: $text-muted;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  display: flex;
+  align-items: center;
+
+  &--index {
+    justify-content: flex-end;
+    padding-right: 16px;
+  }
+  &--duration {
+    justify-content: flex-end;
+  }
+  &--link {
+    justify-content: center;
+  }
+}
+
+// ── Corps ─────────────────────────────────────────────────────
+.ytp-tl-tbody {
+  display: flex;
+  flex-direction: column;
+}
+
+// ── Ligne ─────────────────────────────────────────────────────
+.ytp-tl-row {
+  display: grid;
+  grid-template-columns: 52px 1fr 180px 60px 40px;
+  align-items: center;
+  height: 56px;
+  padding: 0 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  outline: none;
+  user-select: none;
+  transition: background $transition-fast;
+
+  // ── Hover : fond très léger comme Spotify ──
+  &:hover,
+  &:focus-visible {
+    background: rgba(255, 255, 255, 0.06);
+
+    .ytp-tl-index-num {
+      opacity: 0;
+    }
+    .ytp-tl-play-btn {
+      opacity: 1;
+      transform: scale(1);
+    }
+    .ytp-tl-yt-link {
+      opacity: 1;
+    }
+  }
+
+  // ── Active (piste en cours, numéro en vert) ──
+  &--active {
+    .ytp-tl-title {
+      color: $accent !important;
+    }
+    .ytp-tl-index-num {
+      color: $accent;
+    }
+  }
+
+  // ── Playing : waveform animée à la place du numéro, même au survol ──
+  &--playing {
+    .ytp-tl-index-num {
+      opacity: 0;
+    }
+    .ytp-tl-eq {
+      opacity: 1;
+    }
+
+    // La waveform reste visible au survol (pas de bouton play)
+    &:hover,
+    &:focus-visible {
+      .ytp-tl-play-btn {
+        opacity: 0;
+      }
+    }
+  }
+
+  &:active {
+    background: rgba(255, 255, 255, 0.09);
+  }
+}
+
+// ── Cellule index ─────────────────────────────────────────────
+.ytp-tl-cell--index {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 16px;
+}
+
+// ── Cellule thumb+info (colonne principale) ───────────────────
+.ytp-tl-cell--thumb {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  // Cette cellule contient la miniature ET les infos titre/artiste
+  // (voir tracklist.ts — on change légèrement la structure)
+}
+
+// ── Cellule artiste (colonne du milieu) ───────────────────────
+.ytp-tl-cell--info {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+// ── Cellule durée ─────────────────────────────────────────────
+.ytp-tl-cell--duration {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+// ── Cellule lien ─────────────────────────────────────────────
+.ytp-tl-cell--link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+// ── Numéro d'index ────────────────────────────────────────────
+.ytp-tl-index-num {
+  font-size: 14px;
+  color: $text-secondary;
+  font-variant-numeric: tabular-nums;
+  transition: opacity $transition-fast, color $transition-fast;
+  line-height: 1;
+}
+
+// ── Bouton Play ───────────────────────────────────────────────
+// Zone de clic = toute la cellule, mais l'icône est calée à droite comme
+// le numéro (padding-right 16px de la cellule, moins la marge interne du SVG).
+.ytp-tl-play-btn {
+  position: absolute;
+  inset: 0;
+  background: none;
+  border: none;
+  color: $text-primary;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  opacity: 0;
+  transform: scale(0.75);
+  // Zoom centré sur l'icône (12px de padding + 9px de demi-icône), sans glissement latéral
+  transform-origin: calc(100% - 21px) center;
+  transition:
+    opacity $transition-fast,
+    transform $transition-fast,
+    color $transition-fast;
+  padding: 0 12px 0 0;
+
+  svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  &:focus-visible {
+    outline: 2px solid $accent;
+    border-radius: 2px;
+  }
+}
+
+// ── Waveform animée (piste en cours) ──────────────────────────
+// 3 barres fines et arrondies, centrées verticalement (barre du milieu plus
+// haute), calées à droite comme le numéro qu'elles remplacent.
+.ytp-tl-eq {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 12px;
+  transform: translateY(-50%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity $transition-fast;
+
+  i {
+    width: 2.5px;
+    height: 100%;
+    border-radius: 99px;
+    background: $accent;
+    animation: ytp-eq 0.9s ease-in-out infinite alternate;
+
+    // Hauteurs de base + rythmes décalés
+    &:nth-child(1) { height: 60%; animation-duration: 0.75s; animation-delay: -0.3s; }
+    &:nth-child(2) { height: 100%; animation-duration: 0.95s; animation-delay: -0.6s; }
+    &:nth-child(3) { height: 70%; animation-duration: 0.65s; animation-delay: -0.1s; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    i { animation: none; }
+  }
+}
+
+@keyframes ytp-eq {
+  0%   { transform: scaleY(0.45); }
+  100% { transform: scaleY(1); }
+}
+
+// ── Miniature — petite et carrée comme Spotify ────────────────
+.ytp-tl-thumb {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 2px; // très léger
+  display: block;
+  flex-shrink: 0;
+  background: $bg-elevated;
+}
+
+// ── Bloc titre + artiste (dans la même cellule que la thumb) ──
+.ytp-tl-text-block {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+// ── Titre ─────────────────────────────────────────────────────
+.ytp-tl-title {
+  font-size: 14px;
+  font-weight: 400;
+  color: $text-primary;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+  transition: color $transition-fast;
+}
+
+// ── Artiste (sous le titre, petite police grise) ──────────────
+.ytp-tl-artist {
+  font-size: 12px;
+  color: $text-muted;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+
+// ── Artiste colonne centrale (comme Spotify — répète l'artiste) ─
+.ytp-tl-artist-mid {
+  font-size: 13px;
+  color: $text-muted;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+// ── Durée ─────────────────────────────────────────────────────
+.ytp-tl-duration {
+  font-size: 13px;
+  color: $text-muted;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+// ── Lien YouTube (caché, visible au hover) ────────────────────
+.ytp-tl-yt-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: $radius-sm;
+  color: $text-muted;
+  text-decoration: none;
+  opacity: 0;
+  transition:
+    color $transition-fast,
+    opacity $transition-fast;
+
+  &:hover {
+    color: $text-primary;
+  }
+
+  svg {
+    width: 14px;
+    height: 14px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 2;
+  }
+}
+
+// ── Responsive ───────────────────────────────────────────────
+@media (max-width: 700px) {
+  .ytp-tl-thead,
+  .ytp-tl-row {
+    grid-template-columns: 40px 1fr 60px;
+  }
+
+  // Masquer colonne artiste milieu et lien
+  .ytp-tl-cell--info,
+  .ytp-tl-cell--link,
+  .ytp-tl-th--info,
+  .ytp-tl-th--link {
+    display: none;
+  }
+}

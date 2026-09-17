@@ -1,0 +1,57 @@
+// ============================================================
+// styles/_variables.scss — Design tokens globaux
+// ============================================================
+// Ce fichier est injecté automatiquement dans tous les SCSS
+// via vite.config.ts additionalData.
+// ============================================================
+
+// ── Palette ───────────────────────────────────────────────────
+$bg-base:       #0a0a0a;
+$bg-surface:    #121212;
+$bg-elevated:   #1a1a1a;
+$bg-hover:      #222222;
+$bg-active:     #282828;
+
+$accent:        #1db954;   // Vert Spotify signature
+$accent-dim:    #158a3e;
+$accent-glow:   rgba(29, 185, 84, 0.25);
+
+$text-primary:  #ffffff;
+$text-secondary:#b3b3b3;
+$text-muted:    #6a6a6a;
+
+$border:        rgba(255, 255, 255, 0.08);
+$border-strong: rgba(255, 255, 255, 0.15);
+
+// ── Typographie ───────────────────────────────────────────────
+$font-family:   'Inter', system-ui, -apple-system, sans-serif;
+$font-xs:       0.6875rem;   // 11px
+$font-sm:       0.75rem;     // 12px
+$font-base:     0.875rem;    // 14px
+$font-md:       1rem;        // 16px
+
+// ── Espacements ───────────────────────────────────────────────
+$space-xs:  4px;
+$space-sm:  8px;
+$space-md:  16px;
+$space-lg:  24px;
+$space-xl:  32px;
+
+// ── Rayons ────────────────────────────────────────────────────
+$radius-sm: 4px;
+$radius-md: 8px;
+$radius-lg: 12px;
+$radius-full: 9999px;
+
+// ── Ombres & effets ───────────────────────────────────────────
+$shadow-sm:  0 2px 8px rgba(0, 0, 0, 0.4);
+$shadow-md:  0 4px 20px rgba(0, 0, 0, 0.6);
+$shadow-lg:  0 8px 40px rgba(0, 0, 0, 0.8);
+
+// ── Transitions ───────────────────────────────────────────────
+$transition-fast:   0.12s ease;
+$transition-base:   0.2s ease;
+$transition-slow:   0.35s cubic-bezier(0.4, 0, 0.2, 1);
+
+// ── Z-index ───────────────────────────────────────────────────
+$z-player: 99999;

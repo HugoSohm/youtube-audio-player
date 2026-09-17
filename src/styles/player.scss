@@ -1,0 +1,674 @@
+// ============================================================
+// styles/player.scss — Widget flottant minimaliste
+// ============================================================
+
+@use './variables' as *;
+
+// Taille du lecteur (vidéo 16:9)
+$player-width: 348px;
+$player-video-height: 196px;
+
+// ── Widget principal ──────────────────────────────────────────
+#ytp-player-widget {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: $z-player;
+
+  width: $player-width;
+
+  background: #1a1a1a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7);
+
+  font-family: $font-family;
+  color: $text-primary;
+
+  // Caché par défaut, visible dès qu'une piste est lancée
+  opacity: 0;
+  transform: translateY(12px) scale(0.97);
+  pointer-events: none;
+  transition:
+    opacity 0.25s ease,
+    transform 0.25s ease;
+
+  &.ytp-w--visible {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
+  }
+
+  * { box-sizing: border-box; }
+}
+
+// ── Zone player YouTube ───────────────────────────────────────
+// player.ts insère une <iframe> /watch dans #ytp-page-player
+.ytp-w-iframe-wrap {
+  width: 100%;
+  line-height: 0;
+  background: #000;
+  min-height: $player-video-height;
+  position: relative;
+
+  // Le div placeholder et l'iframe créée par YT.Player
+  #ytp-page-player,
+  #ytp-page-player iframe {
+    width: $player-width !important;
+    height: $player-video-height !important;
+    display: block;
+    border: none;
+  }
+}
+
+// ── Bouton fermer (coin de la vidéo, visible au survol du lecteur) ──
+.ytp-w-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2; // au-dessus de l'iframe et de l'overlay d'erreur
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: $text-primary;
+  background: rgba(0, 0, 0, 0.6);
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s, background 0.15s;
+
+  svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  #ytp-player-widget:hover &,
+  &:focus-visible {
+    opacity: 1;
+  }
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.85);
+  }
+
+  &:focus-visible {
+    outline: 2px solid $accent;
+    outline-offset: 1px;
+  }
+}
+
+// ── Overlay d'erreur (embedding désactivé) ────────────────────
+#ytp-embed-error {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: $player-width;
+  height: $player-video-height;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: #111;
+  padding: 16px;
+  text-align: center;
+
+  .ytp-err-icon {
+    color: #666;
+    svg {
+      width: 28px;
+      height: 28px;
+    }
+  }
+
+  .ytp-err-msg {
+    font-size: 11px;
+    color: #888;
+    margin: 0;
+  }
+
+  .ytp-err-link {
+    font-size: 11px;
+    color: $accent;
+    text-decoration: none;
+    border: 1px solid rgba(29, 185, 84, 0.4);
+    padding: 4px 10px;
+    border-radius: 99px;
+    margin-top: 4px;
+    transition: background 0.15s;
+
+    &:hover {
+      background: rgba(29, 185, 84, 0.1);
+    }
+  }
+}
+
+
+// ── Contrôles sous l'iframe ───────────────────────────────────
+.ytp-w-controls {
+  padding: 10px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+// ── Titre + actions (YouTube / Riptune) ──────────────────────
+.ytp-w-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ytp-w-meta {
+  position: relative; // ancre le tooltip du titre
+  flex: 1;
+  min-width: 0;
+}
+
+// Titre complet au survol quand il est tronqué (au-dessus, sur la vidéo)
+.ytp-w-tooltip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: -4px;
+  z-index: 3;
+  width: max-content;
+  max-width: calc(#{$player-width} - 16px);
+  padding: 6px 10px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: $text-primary;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  background: #282828;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 0.15s, transform 0.15s;
+
+  &--visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// ── Menu qualité ──────────────────────────────────────────────
+.ytp-w-quality {
+  position: relative;
+  margin-right: 2px;
+}
+
+.ytp-w-quality__btn {
+  min-width: 40px;
+  height: 22px;
+  padding: 0 7px;
+  font-family: $font-family;
+  font-size: 10px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: $text-secondary;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 99px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+
+  &:hover,
+  .ytp-w-quality--open & {
+    color: $text-primary;
+    border-color: rgba(255, 255, 255, 0.3);
+  }
+
+  &:focus-visible {
+    outline: 2px solid $accent;
+    outline-offset: 1px;
+  }
+}
+
+// S'ouvre vers le haut, sur la vidéo (le widget coupe ce qui dépasse)
+.ytp-w-quality__menu {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 6px);
+  z-index: 3;
+  min-width: 80px;
+  max-height: 200px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  padding: 3px;
+  display: none;
+  flex-direction: column;
+  background: #282828;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6);
+
+  .ytp-w-quality--open & {
+    display: flex;
+  }
+}
+
+.ytp-w-quality__item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  font-family: $font-family;
+  font-size: 11px;
+  line-height: 1.35;
+  text-align: left;
+  color: $text-secondary;
+  background: none;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+
+  // Pastille verte devant la qualité choisie
+  &::before {
+    content: '';
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  &:hover,
+  &:focus-visible {
+    color: $text-primary;
+    background: rgba(255, 255, 255, 0.08);
+    outline: none;
+  }
+
+  &[aria-checked='true'] {
+    color: $accent;
+
+    &::before { background: $accent; }
+  }
+}
+
+.ytp-w-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.ytp-w-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: $text-primary;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+
+.ytp-w-artist {
+  font-size: 11px;
+  color: $text-muted;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 1px;
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  text-decoration: none;
+
+  // Lien vers la chaîne (onglet séparé)
+  &[href] {
+    cursor: pointer;
+
+    &:hover {
+      color: $text-primary;
+      text-decoration: underline;
+    }
+  }
+}
+
+// ── Boutons ───────────────────────────────────────────────────
+.ytp-w-buttons {
+  position: relative; // la commande de volume est ancrée à droite
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.ytp-w-btn {
+  background: none;
+  border: none;
+  color: $text-secondary;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s, background 0.15s;
+
+  svg {
+    width: 18px;
+    height: 18px;
+    display: block;
+  }
+
+  &:hover {
+    color: $text-primary;
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  &:active {
+    transform: scale(0.92);
+  }
+
+  &:focus-visible {
+    outline: 2px solid $accent;
+    outline-offset: 1px;
+  }
+
+  // Boutons -10s / +10s — le chiffre est dessiné dans le SVG
+  &--skip svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  // Répéter : ancré à gauche de la rangée (symétrique du volume), vert + point si actif
+  &--repeat {
+    position: absolute;
+    left: -4px;
+    top: 50%;
+    padding: 4px;
+    transform: translateY(-50%);
+
+    &:active { transform: translateY(-50%) scale(0.92); }
+
+    svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    text { display: none; }
+
+    &.ytp-w-btn--on {
+      color: $accent;
+
+      text { display: inline; }
+
+      &::after {
+        content: '';
+        position: absolute;
+        bottom: -1px;
+        left: 50%;
+        width: 4px;
+        height: 4px;
+        border-radius: 50%;
+        background: $accent;
+        transform: translateX(-50%);
+      }
+    }
+  }
+
+  // Actions à droite du titre
+  &--action {
+    padding: 5px;
+    text-decoration: none;
+
+    svg {
+      width: 18px;
+      height: 18px;
+    }
+  }
+
+  // Riptune : logo en dégradé, coche verte / rouge après envoi
+  &--riptune {
+    .ytp-riptune-check,
+    .ytp-riptune-fail { display: none; }
+
+    &.ytp-w-btn--busy { opacity: 0.5; pointer-events: none; }
+
+    &.ytp-w-btn--sent,
+    &.ytp-w-btn--failed {
+      .ytp-riptune-bars { display: none; }
+    }
+    &.ytp-w-btn--sent {
+      color: $accent;
+      .ytp-riptune-check { display: inline; }
+    }
+    &.ytp-w-btn--failed {
+      color: #f15e6c;
+      .ytp-riptune-fail { display: inline; }
+    }
+  }
+
+  // Bouton play — plus grand
+  &--play {
+    width: 36px;
+    height: 36px;
+    background: $text-primary;
+    color: #000;
+    border-radius: 50%;
+    transition: background 0.15s, transform 0.1s;
+
+    svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    &:hover {
+      background: $accent;
+      color: #000;
+    }
+  }
+}
+
+// ── Barre de progression (cliquable + draggable) ─────────────
+.ytp-w-seek {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+// Zone de clic haute (16px) autour d'une piste visuelle plus fine
+.ytp-w-progress {
+  --progress: 0%;
+  position: relative;
+  width: 100%;
+  height: 16px;
+  cursor: pointer;
+  touch-action: none;
+  outline: none;
+
+  &:focus-visible .ytp-w-progress__track {
+    outline: 2px solid $accent;
+    outline-offset: 3px;
+  }
+}
+
+.ytp-w-progress__track {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 5px;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 99px;
+  overflow: hidden;
+  transition: height 0.15s;
+
+  .ytp-w-progress:hover &,
+  .ytp-w-progress--dragging & {
+    height: 7px;
+  }
+}
+
+.ytp-w-progress__fill {
+  height: 100%;
+  width: var(--progress);
+  background: $text-primary;
+  border-radius: 99px;
+
+  .ytp-w-progress:hover &,
+  .ytp-w-progress--dragging & {
+    background: $accent;
+  }
+}
+
+// Pastille visible au survol / pendant le drag, comme Spotify
+.ytp-w-progress__thumb {
+  position: absolute;
+  top: 50%;
+  left: var(--progress);
+  width: 14px;
+  height: 14px;
+  background: $text-primary;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  transform: translate(-50%, -50%) scale(0);
+  transition: transform 0.15s;
+  pointer-events: none;
+
+  .ytp-w-progress:hover &,
+  .ytp-w-progress:focus-visible &,
+  .ytp-w-progress--dragging & {
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+// ── Volume : bouton + jauge verticale au survol ───────────────
+// Ancré à droite de la rangée de boutons (le transport reste centré)
+.ytp-w-vol {
+  position: absolute;
+  right: -4px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.ytp-w-btn--volume {
+  padding: 4px;
+
+  svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  // L'icône suit le niveau : muet / faible / fort
+  .ytp-vol-mute { display: none; }
+  &[data-level='low'] .ytp-vol-wave2 { display: none; }
+  &[data-level='muted'] {
+    .ytp-vol-wave1,
+    .ytp-vol-wave2 { display: none; }
+    .ytp-vol-mute { display: inline; }
+  }
+}
+
+// Le padding-bottom relie la jauge au bouton : le survol ne se coupe pas
+.ytp-w-vol__popover {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  z-index: 2;
+  width: 36px;
+  padding: 12px 0 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+
+  opacity: 0;
+  visibility: hidden;
+  transform: translate(-50%, 6px);
+  transition: opacity 0.15s, transform 0.15s, visibility 0.15s;
+
+  // Fond de la bulle (hors zone de liaison)
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 6px;
+    z-index: -1;
+    background: #282828;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 18px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6);
+  }
+
+  .ytp-w-vol:hover &,
+  .ytp-w-vol:focus-within &,
+  .ytp-w-vol--dragging & {
+    opacity: 1;
+    visibility: visible;
+    transform: translate(-50%, 0);
+  }
+}
+
+.ytp-w-vol__bar {
+  --volume: 80%;
+  position: relative;
+  width: 24px;
+  height: 84px;
+  cursor: pointer;
+  touch-action: none;
+  outline: none;
+}
+
+.ytp-w-vol__track {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 4px;
+  transform: translateX(-50%);
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 99px;
+  overflow: hidden;
+
+  .ytp-w-vol__bar:focus-visible & {
+    outline: 2px solid $accent;
+    outline-offset: 3px;
+  }
+}
+
+.ytp-w-vol__fill {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: var(--volume);
+  background: $text-primary;
+
+  .ytp-w-vol__bar:hover &,
+  .ytp-w-vol--dragging & {
+    background: $accent;
+  }
+}
+
+.ytp-w-vol__thumb {
+  position: absolute;
+  left: 50%;
+  bottom: var(--volume);
+  width: 12px;
+  height: 12px;
+  background: $text-primary;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  transform: translate(-50%, 50%);
+  pointer-events: none;
+}
+
+.ytp-w-times {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: $text-muted;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}

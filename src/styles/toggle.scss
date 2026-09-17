@@ -1,0 +1,81 @@
+// ============================================================
+// styles/toggle.scss — Interrupteur "Mode liste" (masthead YouTube)
+// ============================================================
+
+@use './variables' as *;
+
+#ytp-mode-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: $space-sm;
+  height: 36px;
+  margin-right: $space-sm;
+  padding: 0 10px 0 12px;
+
+  font-family: $font-family;
+  font-size: $font-base;
+  font-weight: 500;
+  // Variables YouTube → suit automatiquement le thème clair / sombre
+  color: var(--yt-spec-text-primary, #{$text-primary});
+  background: var(--yt-spec-badge-chip-background, rgba(255, 255, 255, 0.1));
+  border: none;
+  border-radius: $radius-full;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background $transition-fast;
+
+  &:hover {
+    background: var(--yt-spec-button-chip-background-hover, rgba(255, 255, 255, 0.2));
+  }
+
+  &:focus-visible {
+    outline: 2px solid $accent;
+    outline-offset: 2px;
+  }
+
+  &.ytp-toggle--floating {
+    position: fixed;
+    top: 64px;
+    right: 24px;
+    z-index: $z-player;
+    color: $text-primary;
+    background: $bg-elevated;
+    box-shadow: $shadow-sm;
+  }
+}
+
+.ytp-toggle__icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.ytp-toggle__switch {
+  position: relative;
+  width: 28px;
+  height: 16px;
+  border-radius: $radius-full;
+  background: var(--yt-spec-text-disabled, $text-muted);
+  transition: background $transition-base;
+}
+
+.ytp-toggle__knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform $transition-base;
+}
+
+.ytp-toggle--on {
+  .ytp-toggle__switch { background: $accent; }
+  .ytp-toggle__knob { transform: translateX(12px); }
+}
+
+// Masthead étroit : on garde l'icône + l'interrupteur
+@media (max-width: 900px) {
+  .ytp-toggle__label { display: none; }
+}
