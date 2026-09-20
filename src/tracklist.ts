@@ -5,6 +5,8 @@
 
 import type { Track } from './types';
 import { activePageRoot } from './extractor';
+import { isLiked, isSignedIn, onLikeChange, toggleLike } from './library';
+import { closePlaylistMenu, openPlaylistMenu, removeToast, showToast } from './playlist-menu';
 import { t } from './i18n';
 import './styles/tracklist.scss';
 
@@ -13,6 +15,10 @@ import './styles/tracklist.scss';
 const CONTAINER_ID = 'ytp-tracklist-root';
 const ROW_ATTR = 'data-track-id';
 const NATIVE_HIDDEN_CLASS = 'ytp-native-hidden';
+/** Posée sur la racine quand l'utilisateur n'est pas connecté : masque « j'aime » et playlists */
+const ANON_CLASS = 'ytp-tl-root--anonymous';
+/** Au-delà, YouTube considère la vidéo comme vue et non comme « à reprendre » */
+const WATCHED_THRESHOLD = 90;
 
 // ── Callbacks vers le player ─────────────────────────────────
 
@@ -20,6 +26,10 @@ type PlayCallback = (track: Track) => void;
 
 let onPlayCallback: PlayCallback | null = null;
 let currentTrackId: string | null = null;
+/** Désabonnement du cache des « j'aime » (posé au premier rendu) */
+let unsubscribeLikes: (() => void) | null = null;
+/** Listener de redimensionnement de fenêtre, posé au montage */
+let resizeListener: AbortController | null = null;
 
 export function setPlayCallback(cb: PlayCallback): void {
   onPlayCallback = cb;
@@ -58,7 +68,29 @@ export function mountTracklist(): HTMLElement {
   // Masque le rendu natif (sans le supprimer pour éviter les erreurs SPA)
   hideNativeRenderer();
 
+  fitToViewport(root);
+  resizeListener = new AbortController();
+  window.addEventListener('resize', () => fitToViewport(root), {
+    signal: resizeListener.signal,
+    passive: true,
+  });
+
   return root;
+}
+
+/**
+ * Empêche la tracklist de déborder à droite de la fenêtre.
+ *
+ * Certains conteneurs de YouTube sont dimensionnés en `100vw`, qui inclut la
+ * barre de défilement : la liste hérite alors d'une largeur supérieure à la
+ * zone visible et son en-tête de colonnes part hors écran. On mesure l'écart
+ * réel et on le reprend par une marge droite (largeur auto, cf. tracklist.scss).
+ */
+function fitToViewport(root: HTMLElement): void {
+  root.style.marginRight = '';
+
+  const overflow = root.getBoundingClientRect().right - document.documentElement.clientWidth;
+  if (overflow > 0) root.style.marginRight = `${Math.ceil(overflow)}px`;
 }
 
 /**
@@ -121,6 +153,18 @@ function buildRow(track: Track): HTMLElement {
 
   // L'index affiché est 1-basé
   const displayIndex = track.index + 1;
+  const liked = isLiked(track.id);
+  const watched = track.watchedPercent !== null;
+  const fullyWatched = (track.watchedPercent ?? 0) >= WATCHED_THRESHOLD;
+  // Seule trace visible de l'historique : la barre rouge sous la miniature.
+  // Le détail ("Vue à 42 %") reste accessible en infobulle et aux lecteurs d'écran.
+  const watchedLabel = t(
+    fullyWatched ? 'alreadyWatched' : 'partlyWatched',
+    String(Math.round(track.watchedPercent ?? 0))
+  );
+
+  if (watched) row.classList.add('ytp-tl-row--watched');
+  if (fullyWatched) row.classList.add('ytp-tl-row--seen');
 
   // Les titres viennent de YouTube : échappés avant injection HTML
   const safe = {
@@ -128,6 +172,7 @@ function buildRow(track: Track): HTMLElement {
     title: escapeHtml(track.title),
     artist: escapeHtml(track.artist),
     duration: escapeHtml(track.duration),
+    published: escapeHtml(track.publishedAt ?? '—'),
     thumbnail: escapeHtml(track.thumbnail),
   };
 
@@ -150,14 +195,19 @@ function buildRow(track: Track): HTMLElement {
 
     <!-- Thumbnail + Titre + Artiste (sous le titre) -->
     <div class="ytp-tl-cell ytp-tl-cell--thumb" role="cell">
-      <img
-        class="ytp-tl-thumb"
-        src="${safe.thumbnail}"
-        alt=""
-        loading="lazy"
-        width="40"
-        height="40"
-      />
+      <div class="ytp-tl-thumb-wrap">
+        <img
+          class="ytp-tl-thumb"
+          src="${safe.thumbnail}"
+          alt=""
+          loading="lazy"
+          width="40"
+          height="40"
+        />
+        ${watched
+          ? `<span class="ytp-tl-progress" role="img" title="${watchedLabel}" aria-label="${watchedLabel}"><i style="width:${track.watchedPercent}%"></i></span>`
+          : ''}
+      </div>
       <div class="ytp-tl-text-block">
         <span class="ytp-tl-title" title="${safe.title}">${safe.title}</span>
         <span class="ytp-tl-artist">${safe.artist}</span>
@@ -169,15 +219,47 @@ function buildRow(track: Track): HTMLElement {
       <span class="ytp-tl-artist-mid">${safe.artist}</span>
     </div>
 
+    <!-- Date de publication -->
+    <div class="ytp-tl-cell ytp-tl-cell--published" role="cell">
+      <span class="ytp-tl-published">${safe.published}</span>
+    </div>
+
     <!-- Durée -->
     <div class="ytp-tl-cell ytp-tl-cell--duration" role="cell">
       <span class="ytp-tl-duration">${safe.duration}</span>
     </div>
 
-    <!-- Lien YT -->
-    <div class="ytp-tl-cell ytp-tl-cell--link" role="cell">
+    <!-- J'aime / playlist / lien YT -->
+    <div class="ytp-tl-cell ytp-tl-cell--actions" role="cell">
+      <button
+        class="ytp-tl-action ytp-tl-like${liked ? ' ytp-tl-like--on' : ''}"
+        aria-pressed="${liked}"
+        aria-label="${t(liked ? 'unlike' : 'like')}"
+        title="${t(liked ? 'unlike' : 'like')}"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M20.8 4.6a5.5 5.5 0 00-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 00-7.8 7.8l1 1.1L12 21.2l7.8-7.7 1-1.1a5.5 5.5 0 000-7.8z"/>
+        </svg>
+      </button>
+
+      <button
+        class="ytp-tl-action ytp-tl-save"
+        aria-haspopup="dialog"
+        aria-expanded="false"
+        aria-label="${t('addToPlaylist')}"
+        title="${t('addToPlaylist')}"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <line x1="3" y1="6" x2="15" y2="6"/>
+          <line x1="3" y1="12" x2="15" y2="12"/>
+          <line x1="3" y1="18" x2="11" y2="18"/>
+          <line x1="18" y1="10" x2="18" y2="20"/>
+          <line x1="13" y1="15" x2="23" y2="15"/>
+        </svg>
+      </button>
+
       <a
-        class="ytp-tl-yt-link"
+        class="ytp-tl-action ytp-tl-yt-link"
         href="https://www.youtube.com/watch?v=${safe.id}"
         target="_blank"
         rel="noopener noreferrer"
@@ -198,6 +280,18 @@ function buildRow(track: Track): HTMLElement {
     onPlayCallback?.(track);
   });
 
+  const likeBtn = row.querySelector<HTMLButtonElement>('.ytp-tl-like');
+  likeBtn?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    void onLikeClick(likeBtn, track);
+  });
+
+  const saveBtn = row.querySelector<HTMLButtonElement>('.ytp-tl-save');
+  saveBtn?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    openPlaylistMenu(saveBtn, track);
+  });
+
   // Clic sur la ligne entière (sauf liens)
   row.addEventListener('click', (e) => {
     const target = e.target as HTMLElement;
@@ -216,6 +310,37 @@ function buildRow(track: Track): HTMLElement {
   return row;
 }
 
+// ── « J'aime » ────────────────────────────────────────────────
+
+/**
+ * Bascule le « j'aime » ; l'affichage suit le cache partagé
+ * (voir syncLikeButtons), y compris en cas d'échec.
+ */
+async function onLikeClick(button: HTMLButtonElement, track: Track): Promise<void> {
+  if (button.classList.contains('ytp-tl-action--busy')) return;
+  button.classList.add('ytp-tl-action--busy');
+
+  try {
+    await toggleLike(track.id);
+  } catch {
+    showToast(t('actionFailed'));
+  } finally {
+    button.classList.remove('ytp-tl-action--busy');
+  }
+}
+
+/** Reflète l'état d'une vidéo sur toutes ses lignes visibles. */
+function syncLikeButtons(videoId: string, liked: boolean): void {
+  const row = document.querySelector<HTMLElement>(`[${ROW_ATTR}="${CSS.escape(videoId)}"]`);
+  const button = row?.querySelector<HTMLButtonElement>('.ytp-tl-like');
+  if (!button) return;
+
+  button.classList.toggle('ytp-tl-like--on', liked);
+  button.setAttribute('aria-pressed', String(liked));
+  button.setAttribute('aria-label', t(liked ? 'unlike' : 'like'));
+  button.title = t(liked ? 'unlike' : 'like');
+}
+
 // ── Rendu du tableau ──────────────────────────────────────────
 
 function buildTableHeader(): HTMLElement {
@@ -226,13 +351,14 @@ function buildTableHeader(): HTMLElement {
     <div class="ytp-tl-th ytp-tl-th--index" role="columnheader">#</div>
     <div class="ytp-tl-th" role="columnheader">${t('columnTitle')}</div>
     <div class="ytp-tl-th ytp-tl-th--info" role="columnheader">${t('columnArtist')}</div>
+    <div class="ytp-tl-th ytp-tl-th--published" role="columnheader">${t('columnPublished')}</div>
     <div class="ytp-tl-th ytp-tl-th--duration" role="columnheader">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" aria-label="${t('columnDuration')}">
         <circle cx="12" cy="12" r="10"/>
         <polyline points="12 6 12 12 16 14"/>
       </svg>
     </div>
-    <div class="ytp-tl-th ytp-tl-th--link" role="columnheader"></div>
+    <div class="ytp-tl-th ytp-tl-th--actions" role="columnheader"></div>
   `;
   return thead;
 }
@@ -245,6 +371,13 @@ function buildTableHeader(): HTMLElement {
  */
 export function renderTracklist(root: HTMLElement, tracks: Track[]): void {
   root.innerHTML = '';
+
+  // Hors session YouTube, « j'aime » et playlists n'ont pas de sens
+  root.classList.toggle(ANON_CLASS, !isSignedIn());
+
+  // Un seul abonnement, quel que soit le nombre de rendus
+  unsubscribeLikes?.();
+  unsubscribeLikes = onLikeChange(syncLikeButtons);
 
   // Header décoratif
   root.appendChild(buildHeader());
@@ -331,6 +464,12 @@ function updateTrackCount(count: number): void {
  * Démonte complètement la tracklist et restaure le rendu natif.
  */
 export function unmountTracklist(): void {
+  closePlaylistMenu();
+  removeToast();
+  unsubscribeLikes?.();
+  unsubscribeLikes = null;
+  resizeListener?.abort();
+  resizeListener = null;
   document.getElementById(CONTAINER_ID)?.remove();
   showNativeRenderer();
 }

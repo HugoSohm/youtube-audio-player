@@ -18,6 +18,7 @@
 
 import type { Track, PlayerState, VideoQuality, PlayerQualityInfo } from './types';
 import './styles/player.scss';
+import { cacheLikeState } from './library';
 import { t } from './i18n';
 
 // ── Constantes ────────────────────────────────────────────────
@@ -49,6 +50,9 @@ const FRAME_CSS = `
   html, body, ytd-app, #movie_player { pointer-events: none !important; }
   #movie_player .video-ads { pointer-events: auto !important; }
 `;
+
+/** Bouton « j'aime » de la page /watch chargée dans l'iframe (interfaces ancienne et nouvelle) */
+const SEL_FRAME_LIKE = 'like-button-view-model button, #segmented-like-button button, ytd-toggle-button-renderer#like-button button';
 
 const VOLUME_STORAGE_KEY = 'playerVolume';
 const REPEAT_STORAGE_KEY = 'playerRepeat';
@@ -156,6 +160,19 @@ function tick(): void {
   if (video && !isSeeking && !isAdShowing() && video.duration > 0) {
     updateProgress(video.currentTime, video.duration);
   }
+
+  syncLikeFromFrame(doc, state.currentTrack.id);
+}
+
+/**
+ * L'iframe est une vraie page /watch, même origine : son bouton « j'aime »
+ * porte l'état réel du compte. C'est la seule piste pour laquelle on connaît
+ * cet état sans requête supplémentaire — on en profite pour corriger le cache
+ * local que la tracklist affiche (voir library.ts).
+ */
+function syncLikeFromFrame(doc: Document, videoId: string): void {
+  const pressed = doc.querySelector(SEL_FRAME_LIKE)?.getAttribute('aria-pressed');
+  if (pressed === 'true' || pressed === 'false') cacheLikeState(videoId, pressed === 'true');
 }
 
 function bindVideo(video: HTMLVideoElement): void {

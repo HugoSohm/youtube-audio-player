@@ -26,6 +26,30 @@ const SEL_DURATION = 'span.ytd-thumbnail-overlay-time-status-renderer, ytd-thumb
 const SEL_CHANNEL = 'ytd-channel-name a, .ytd-channel-name a, a.ytAttributedStringLink[href^="/@"], a.ytAttributedStringLink[href^="/channel/"]';
 /** Miniature */
 const SEL_THUMBNAIL = 'img.yt-core-image, img#img';
+/**
+ * Ligne de métadonnées sous le titre (vues • date de publication).
+ *
+ * Les classes de la nouvelle interface sont instables — YouTube est passé de
+ * `yt-content-metadata-view-model__metadata-row` à
+ * `ytContentMetadataViewModelMetadataRow`. On vise donc d'abord la structure
+ * (le custom element et ses lignes), et on garde les deux conventions de
+ * nommage en filet.
+ */
+const SEL_META_ROW = [
+  '#metadata-line',
+  '#video-info',
+  'yt-content-metadata-view-model > div',
+  '[class*="MetadataRow"]',
+  '[class*="metadata-row"]',
+].join(', ');
+/** Barre de progression « déjà vue » posée par YouTube sur la miniature */
+const SEL_WATCHED = [
+  'ytd-thumbnail-overlay-resume-playback-renderer #progress',
+  // Nouvelle interface : le suffixe de la classe change au fil des versions
+  '[class*="ProgressBarHostWatchedProgressBarSegment"]',
+].join(', ');
+/** Conteneur injecté par l'extension : ses mutations ne doivent pas relancer l'extraction */
+const SEL_OWN_ROOT = '#ytp-tracklist-root';
 
 // ── Utilitaires ───────────────────────────────────────────────
 
@@ -71,6 +95,48 @@ export function activePageRoot(): Element {
     document.querySelector('ytd-page-manager > :not([hidden])') ??
     document.body
   );
+}
+
+/**
+ * Date de publication relative affichée par YouTube ("3 months ago", "il y a 3 mois").
+ *
+ * YouTube ne l'expose nulle part sous forme structurée : on lit la ligne de
+ * métadonnées, où l'ordre est toujours « vues • publication ». On prend donc le
+ * dernier élément, et seulement quand la ligne en compte au moins deux — sinon
+ * c'est un compteur de vues seul (playlists classiques) et on préfère ne rien
+ * afficher plutôt qu'une valeur fausse.
+ */
+function extractPublished(el: Element, artist: string): string | null {
+  const rows = [...el.querySelectorAll(SEL_META_ROW)].reverse();
+
+  for (const row of rows) {
+    // Seules les feuilles : un <span> parent répéterait le texte de ses enfants
+    const items = [...row.querySelectorAll('span')]
+      .filter((span) => !span.querySelector('span'))
+      .map((span) => (span.textContent ?? '').replace(/\u00a0/g, ' ').trim())
+      .filter((text) => text && text !== '•' && text !== artist);
+
+    const last = items[items.length - 1];
+    if (items.length >= 2 && last) return last;
+  }
+
+  return null;
+}
+
+/**
+ * Pourcentage déjà visionné, d'après la barre rouge que YouTube pose sur la
+ * miniature des vidéos de l'historique. Sa largeur est en style inline, donc
+ * lisible même si le rendu natif est masqué. null = vidéo jamais ouverte
+ * (YouTube n'insère alors pas l'overlay).
+ */
+function extractWatchedPercent(el: Element): number | null {
+  const bar = el.querySelector<HTMLElement>(SEL_WATCHED);
+  if (!bar) return null;
+
+  const percent = parseFloat(bar.style.width);
+  if (!Number.isFinite(percent) || percent <= 0) return null;
+
+  return Math.min(100, percent);
 }
 
 // ── Extraction depuis un nœud renderer ───────────────────────
@@ -120,7 +186,23 @@ function extractFromRenderer(el: Element, index: number, isPlaylistPage: boolean
   //    les images floues/lazy-loaded du DOM
   const thumbnail = buildThumbnailUrl(videoId);
 
-  return { id: videoId, title, artist, channelUrl, duration, thumbnail, index };
+  // 5. Date de publication (texte relatif fourni par YouTube, déjà localisé)
+  const publishedAt = extractPublished(el, artist);
+
+  // 6. Progression de lecture (historique YouTube)
+  const watchedPercent = extractWatchedPercent(el);
+
+  return {
+    id: videoId,
+    title,
+    artist,
+    channelUrl,
+    duration,
+    publishedAt,
+    watchedPercent,
+    thumbnail,
+    index,
+  };
 }
 
 /**
@@ -194,7 +276,12 @@ export function watchForNewTracks(
   // Pré-remplir les IDs déjà extraits
   extractTracks().forEach((t) => seenIds.add(t.id));
 
-  const observer = new MutationObserver(() => {
+  const observer = new MutationObserver((mutations) => {
+    // Nos propres ajouts de lignes sont dans le conteneur observé : sans ce
+    // filtre, chaque appendTracks() relancerait une extraction complète (et
+    // repousserait le debounce indéfiniment sur les longues listes).
+    if (mutations.every((m) => (m.target as Element).closest?.(SEL_OWN_ROOT))) return;
+
     // Debounce : on attend 300ms après le dernier mutation pour extraire
     if (debounceTimer !== null) clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {

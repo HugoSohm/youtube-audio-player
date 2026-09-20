@@ -17,6 +17,10 @@ export interface Track {
   channelUrl: string | null;
   /** Durée formatée "mm:ss" ou "h:mm:ss" */
   duration: string;
+  /** Date de publication relative telle que YouTube l'affiche ("3 months ago"), null si absente */
+  publishedAt: string | null;
+  /** Progression de lecture déjà effectuée, en % (0-100) ; null si jamais vue */
+  watchedPercent: number | null;
   /** URL de la miniature (mqdefault ou hqdefault) */
   thumbnail: string;
   /** Position 0-indexée dans la tracklist */
