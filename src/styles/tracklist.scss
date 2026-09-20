@@ -14,12 +14,23 @@
 
 // ── Conteneur racine — transparent, s'intègre à YouTube ──────
 #ytp-tracklist-root {
+  box-sizing: border-box;
+  // Pas de width: 100% — la largeur reste "auto" pour que fitToViewport()
+  // puisse la réduire par une marge droite (voir tracklist.ts).
+  max-width: 100%;
   font-family: $font-family;
   color: $text-primary;
   // Pas de background, pas de border, pas de border-radius
   // On s'adapte au fond sombre natif de YouTube
-  padding-bottom: 24px; // le player est un widget flottant en coin, plus de barre pleine largeur
+  // Le padding haut décolle l'en-tête de colonnes de la barre d'onglets
+  // (collante) de YouTube ; le player est un widget flottant en coin.
+  padding: 16px 0 24px;
   animation: ytp-fadein 0.3s ease both;
+
+  // Sans ça, l'ancrage au défilement de Chrome compense la croissance de la
+  // liste en descendant le scroll : le bloc "continuation" de YouTube reste
+  // alors dans la fenêtre et déclenche les chargements en boucle.
+  overflow-anchor: none;
 
   * {
     box-sizing: border-box;
@@ -66,15 +77,26 @@ html.ytp-native-hidden {
   width: 100%;
 }
 
-.ytp-tl-thead {
+// Colonnes partagées par l'en-tête et les lignes : les minmax(0, …)
+// laissent les colonnes se réduire au lieu de déborder à droite.
+@mixin tl-columns {
   display: grid;
-  // #  |  thumb+info (flex)  |  artiste mid  |  durée  |  lien
-  grid-template-columns: 52px 1fr 180px 60px 40px;
+  // #  |  thumb+titre  |  artiste  |  publication  |  durée  |  actions
+  grid-template-columns:
+    52px
+    minmax(0, 1fr)
+    minmax(0, 180px)
+    minmax(0, 116px)
+    60px
+    108px;
   align-items: center;
-  padding: 0 16px 0 16px;
+}
+
+.ytp-tl-thead {
+  @include tl-columns;
+  padding: 0 16px 8px 16px;
   margin-bottom: 4px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.07);
-  padding-bottom: 8px;
 }
 
 .ytp-tl-th {
@@ -93,8 +115,12 @@ html.ytp-native-hidden {
   &--duration {
     justify-content: flex-end;
   }
-  &--link {
-    justify-content: center;
+  &--published,
+  &--actions {
+    justify-content: flex-end;
+  }
+  &--published {
+    padding-right: 16px;
   }
 }
 
@@ -102,13 +128,12 @@ html.ytp-native-hidden {
 .ytp-tl-tbody {
   display: flex;
   flex-direction: column;
+  overflow-anchor: none;
 }
 
 // ── Ligne ─────────────────────────────────────────────────────
 .ytp-tl-row {
-  display: grid;
-  grid-template-columns: 52px 1fr 180px 60px 40px;
-  align-items: center;
+  @include tl-columns;
   height: 56px;
   padding: 0 16px;
   border-radius: 4px;
@@ -129,8 +154,18 @@ html.ytp-native-hidden {
       opacity: 1;
       transform: scale(1);
     }
-    .ytp-tl-yt-link {
+    .ytp-tl-action {
       opacity: 1;
+    }
+  }
+
+  // ── Déjà vue en entier : estompée, comme un message lu ──
+  &--seen {
+    .ytp-tl-title {
+      color: $text-secondary;
+    }
+    .ytp-tl-thumb {
+      opacity: 0.55;
     }
   }
 
@@ -200,11 +235,21 @@ html.ytp-native-hidden {
   justify-content: flex-end;
 }
 
-// ── Cellule lien ─────────────────────────────────────────────
-.ytp-tl-cell--link {
+// ── Cellule date de publication ──────────────────────────────
+.ytp-tl-cell--published {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-end;
+  min-width: 0;
+  padding-right: 16px;
+}
+
+// ── Cellule actions (j'aime | playlist | lien YT) ────────────
+.ytp-tl-cell--actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
 }
 
 // ── Numéro d'index ────────────────────────────────────────────
@@ -290,14 +335,38 @@ html.ytp-native-hidden {
 }
 
 // ── Miniature — petite et carrée comme Spotify ────────────────
+.ytp-tl-thumb-wrap {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+}
+
 .ytp-tl-thumb {
   width: 40px;
   height: 40px;
   object-fit: cover;
   border-radius: 2px; // très léger
   display: block;
-  flex-shrink: 0;
   background: $bg-elevated;
+}
+
+// ── Progression « déjà vue » — même code visuel que YouTube ───
+.ytp-tl-progress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 0 0 2px 2px;
+  overflow: hidden;
+
+  i {
+    display: block;
+    height: 100%;
+    background: #ff0033; // rouge YouTube
+  }
 }
 
 // ── Bloc titre + artiste (dans la même cellule que la thumb) ──
@@ -347,23 +416,54 @@ html.ytp-native-hidden {
   letter-spacing: 0.02em;
 }
 
-// ── Lien YouTube (caché, visible au hover) ────────────────────
-.ytp-tl-yt-link {
+// ── Date de publication ───────────────────────────────────────
+.ytp-tl-published {
+  font-size: 13px;
+  color: $text-muted;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+// ── Actions de ligne (cachées, révélées au survol) ────────────
+// Le « j'aime » actif reste visible hors survol : c'est un état, pas une action.
+.ytp-tl-action {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 28px;
   height: 28px;
+  padding: 0;
+  flex-shrink: 0;
+  background: none;
+  border: none;
   border-radius: $radius-sm;
   color: $text-muted;
   text-decoration: none;
+  cursor: pointer;
   opacity: 0;
   transition:
     color $transition-fast,
-    opacity $transition-fast;
+    opacity $transition-fast,
+    transform $transition-fast;
 
   &:hover {
     color: $text-primary;
+  }
+
+  &:focus-visible {
+    opacity: 1;
+    outline: 2px solid $accent;
+  }
+
+  &:active {
+    transform: scale(0.88);
+  }
+
+  // Requête en cours : on neutralise le bouton sans le faire sauter
+  &--busy {
+    pointer-events: none;
+    opacity: 0.5;
   }
 
   svg {
@@ -375,18 +475,279 @@ html.ytp-native-hidden {
   }
 }
 
-// ── Responsive ───────────────────────────────────────────────
-@media (max-width: 700px) {
-  .ytp-tl-thead,
-  .ytp-tl-row {
-    grid-template-columns: 40px 1fr 60px;
+.ytp-tl-like {
+  svg { fill: none; }
+
+  &:hover {
+    color: $accent;
   }
 
-  // Masquer colonne artiste milieu et lien
+  &--on {
+    opacity: 1;
+    color: $accent;
+
+    svg {
+      fill: currentColor;
+      stroke: currentColor;
+    }
+  }
+}
+
+.ytp-tl-save svg {
+  stroke-linecap: round;
+}
+
+// Session YouTube absente : « j'aime » et playlists ne mènent nulle part
+.ytp-tl-root--anonymous {
+  .ytp-tl-like,
+  .ytp-tl-save {
+    display: none;
+  }
+
+  .ytp-tl-cell--actions,
+  .ytp-tl-th--actions {
+    // Une seule action restante : on rend la colonne à la liste
+    width: 40px;
+    margin-left: auto;
+  }
+}
+
+// ── Popover « Ajouter à une playlist » ───────────────────────
+// Posé sur <body> : hors de la tracklist, donc styles non imbriqués.
+#ytp-playlist-menu {
+  position: fixed;
+  z-index: $z-player;
+  box-sizing: border-box;
+  width: 280px;
+  max-height: min(60vh, 420px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  font-family: $font-family;
+  color: $text-primary;
+  background: $bg-elevated;
+  border: 1px solid $border;
+  border-radius: $radius-md;
+  box-shadow: $shadow-md;
+  animation: ytp-fadein 0.12s ease both;
+
+  * { box-sizing: border-box; }
+}
+
+.ytp-pm__head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 14px 10px;
+  border-bottom: 1px solid $border;
+}
+
+.ytp-pm__title {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.ytp-pm__track {
+  font-size: 12px;
+  color: $text-muted;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ytp-pm__body {
+  overflow-y: auto;
+  padding: 6px;
+}
+
+.ytp-pm__status {
+  padding: 14px 8px;
+  font-size: 13px;
+  color: $text-muted;
+  text-align: center;
+}
+
+.ytp-pm__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  background: none;
+  border: none;
+  border-radius: $radius-sm;
+  color: $text-secondary;
+  font-family: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  transition: background $transition-fast, color $transition-fast;
+
+  &:hover {
+    background: $bg-hover;
+    color: $text-primary;
+  }
+
+  &:focus-visible {
+    outline: 2px solid $accent;
+  }
+
+  &--busy {
+    pointer-events: none;
+    opacity: 0.6;
+  }
+
+  &[aria-checked='true'] {
+    color: $text-primary;
+
+    .ytp-pm__check {
+      border-color: $accent;
+      background: $accent;
+      color: $bg-base;
+    }
+    .ytp-pm__check svg { opacity: 1; }
+  }
+}
+
+.ytp-pm__check {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  border: 1.5px solid $border-strong;
+  border-radius: 3px;
+  transition: background $transition-fast, border-color $transition-fast;
+
+  svg {
+    width: 11px;
+    height: 11px;
+    opacity: 0;
+    transition: opacity $transition-fast;
+  }
+}
+
+// « Nouvelle playlist » : pas une case à cocher, juste un "+"
+.ytp-pm__item--new .ytp-pm__check {
+  border: none;
+
+  svg {
+    width: 16px;
+    height: 16px;
+    opacity: 1;
+  }
+}
+
+.ytp-pm__create {
+  border-top: 1px solid $border;
+  margin-top: 6px;
+  padding-top: 6px;
+}
+
+.ytp-pm__form {
+  display: flex;
+  gap: 6px;
+  padding: 4px 6px 2px;
+
+  &--busy {
+    pointer-events: none;
+    opacity: 0.6;
+  }
+}
+
+.ytp-pm__input {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 9px;
+  background: $bg-surface;
+  border: 1px solid $border-strong;
+  border-radius: $radius-sm;
+  color: $text-primary;
+  font-family: inherit;
+  font-size: 13px;
+
+  &:focus {
+    outline: none;
+    border-color: $accent;
+  }
+}
+
+.ytp-pm__submit {
+  padding: 7px 12px;
+  background: $accent;
+  border: none;
+  border-radius: $radius-sm;
+  color: $bg-base;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover { background: $accent-dim; }
+}
+
+// ── Toast (erreurs d'API surtout) ────────────────────────────
+#ytp-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 32px;
+  z-index: $z-player;
+  max-width: 420px;
+  padding: 11px 18px;
+  font-family: $font-family;
+  font-size: 13px;
+  color: $text-primary;
+  background: $bg-active;
+  border: 1px solid $border;
+  border-radius: $radius-full;
+  box-shadow: $shadow-md;
+  opacity: 0;
+  transform: translate(-50%, 12px);
+  pointer-events: none;
+  transition: opacity $transition-base, transform $transition-base;
+
+  &.ytp-toast--visible {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+// ── Responsive ───────────────────────────────────────────────
+// On retire les colonnes secondaires une à une plutôt que d'un coup :
+// la date de publication survit plus longtemps que l'artiste répété.
+@media (max-width: 1100px) {
+  .ytp-tl-thead,
+  .ytp-tl-row {
+    grid-template-columns: 52px minmax(0, 1fr) minmax(0, 116px) 60px 108px;
+  }
+
   .ytp-tl-cell--info,
-  .ytp-tl-cell--link,
-  .ytp-tl-th--info,
-  .ytp-tl-th--link {
+  .ytp-tl-th--info {
+    display: none;
+  }
+}
+
+@media (max-width: 860px) {
+  .ytp-tl-thead,
+  .ytp-tl-row {
+    grid-template-columns: 44px minmax(0, 1fr) 60px 108px;
+  }
+
+  .ytp-tl-cell--published,
+  .ytp-tl-th--published {
+    display: none;
+  }
+}
+
+@media (max-width: 620px) {
+  .ytp-tl-thead,
+  .ytp-tl-row {
+    grid-template-columns: 40px minmax(0, 1fr) 60px;
+  }
+
+  .ytp-tl-cell--actions,
+  .ytp-tl-th--actions {
     display: none;
   }
 }

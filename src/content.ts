@@ -31,6 +31,7 @@ import {
   setOnClose,
 } from './player';
 import { registerKeyboardShortcuts, unregisterKeyboardShortcuts } from './keyboard';
+import { loadLikes } from './library';
 import { initToggleState, isEnabled, showToggle, hideToggle } from './toggle';
 import type { Track } from './types';
 
@@ -214,5 +215,7 @@ initToggleState((enabled) => {
     if (detectPage() !== 'unknown') showToggle();
   }
 })
+  // Le cache des « j'aime » est lu au premier rendu des lignes : on l'attend
+  .then(() => loadLikes())
   .then(() => init())
   .catch(console.error);

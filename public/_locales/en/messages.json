@@ -26,6 +26,9 @@
   "columnDuration": {
     "message": "Duration"
   },
+  "columnPublished": {
+    "message": "PUBLISHED"
+  },
   "trackByArtist": {
     "message": "$arg1$ by $arg2$",
     "placeholders": {
@@ -150,5 +153,51 @@
   },
   "videoUnavailable": {
     "message": "Video unavailable"
+  },
+  "loading": {
+    "message": "Loading…"
+  },
+  "like": {
+    "message": "Like"
+  },
+  "unlike": {
+    "message": "Remove like"
+  },
+  "addToPlaylist": {
+    "message": "Save to playlist"
+  },
+  "newPlaylist": {
+    "message": "New playlist"
+  },
+  "newPlaylistName": {
+    "message": "Playlist name"
+  },
+  "create": {
+    "message": "Create"
+  },
+  "playlistsError": {
+    "message": "Could not load your playlists"
+  },
+  "playlistCreated": {
+    "message": "Playlist \"$arg1$\" created",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "actionFailed": {
+    "message": "YouTube refused the request. Try again."
+  },
+  "alreadyWatched": {
+    "message": "Already watched"
+  },
+  "partlyWatched": {
+    "message": "Watched $arg1$%",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
   }
 }

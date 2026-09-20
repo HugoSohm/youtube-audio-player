@@ -26,6 +26,9 @@
   "columnDuration": {
     "message": "Duración"
   },
+  "columnPublished": {
+    "message": "PUBLICADO"
+  },
   "trackByArtist": {
     "message": "$arg1$ de $arg2$",
     "placeholders": {
@@ -150,5 +153,51 @@
   },
   "videoUnavailable": {
     "message": "Vídeo no disponible"
+  },
+  "loading": {
+    "message": "Cargando…"
+  },
+  "like": {
+    "message": "Me gusta"
+  },
+  "unlike": {
+    "message": "Quitar me gusta"
+  },
+  "addToPlaylist": {
+    "message": "Guardar en una lista"
+  },
+  "newPlaylist": {
+    "message": "Nueva lista"
+  },
+  "newPlaylistName": {
+    "message": "Nombre de la lista"
+  },
+  "create": {
+    "message": "Crear"
+  },
+  "playlistsError": {
+    "message": "No se pudieron cargar tus listas"
+  },
+  "playlistCreated": {
+    "message": "Lista «$arg1$» creada",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
+  },
+  "actionFailed": {
+    "message": "YouTube rechazó la solicitud. Inténtalo de nuevo."
+  },
+  "alreadyWatched": {
+    "message": "Ya vista"
+  },
+  "partlyWatched": {
+    "message": "Vista al $arg1$ %",
+    "placeholders": {
+      "arg1": {
+        "content": "$1"
+      }
+    }
   }
 }
