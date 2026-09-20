@@ -27,20 +27,25 @@
   padding: 16px 0 24px;
   animation: ytp-fadein 0.3s ease both;
 
-  // Sans ça, l'ancrage au défilement de Chrome compense la croissance de la
-  // liste en descendant le scroll : le bloc "continuation" de YouTube reste
-  // alors dans la fenêtre et déclenche les chargements en boucle.
-  overflow-anchor: none;
-
   * {
     box-sizing: border-box;
   }
 }
 
 // ── Rendu natif masqué (classe posée sur <html> par tracklist.ts) ──
-// On masque tout SAUF le bloc de chargement "continuation" : il se retrouve
-// juste sous la tracklist et déclenche l'infinite scroll natif de YouTube.
+// Tout est masqué sauf le bloc de chargement "continuation", que la règle
+// suivante prend en charge séparément.
 html.ytp-native-hidden {
+  // Chaque lot ajoute ~1700px de lignes. L'ancrage au défilement de Chrome
+  // compense cette croissance en descendant le scroll d'autant, pour garder
+  // à sa place l'élément qu'il a choisi comme ancre : le bas de la liste
+  // reste alors collé au bas de la fenêtre et la pagination se relance en
+  // boucle (mesuré : scrollY +1710 à chaque lot, sentinelle figée à 847px).
+  //
+  // La propriété doit être posée sur l'élément qui défile : sur la tracklist
+  // elle empêche seulement ses propres nœuds d'être choisis comme ancre.
+  overflow-anchor: none;
+
   // Recherche + chaîne
   ytd-section-list-renderer > :not(#contents),
   ytd-section-list-renderer > #contents > :not(ytd-continuation-item-renderer, :has(ytd-playlist-video-list-renderer)),
@@ -57,6 +62,24 @@ html.ytp-native-hidden {
   yt-section-list-renderer > :not(.ytSectionListRendererContents),
   yt-item-section-renderer > :not(#contents),
   yt-item-section-renderer > #contents > :not(:has(> yt-continuation-item-view-model)) {
+    display: none !important;
+  }
+}
+
+// ── Porte de pagination ──────────────────────────────────────
+// Masquer le rendu natif fait s'effondrer la hauteur de la page : la
+// sentinelle de pagination de YouTube reste alors dans la fenêtre en
+// permanence, et comme chaque lot chargé est masqué à son tour, il n'ajoute
+// aucune hauteur et la sentinelle ne bouge jamais. YouTube enchaîne donc les
+// lots jusqu'à épuiser la chaîne — mesuré sur @tiresssunderratedclub :
+// 30 → 761 vidéos en 6 s, sans le moindre défilement.
+//
+// On la masque donc elle aussi, et pagination.ts ne la révèle que le temps
+// d'un lot, quand l'utilisateur arrive en bas de la tracklist.
+html.ytp-native-hidden:not(.ytp-load-more) {
+  ytd-continuation-item-renderer,
+  yt-continuation-item-view-model,
+  yt-item-section-renderer > #contents > :has(> yt-continuation-item-view-model) {
     display: none !important;
   }
 }
@@ -128,13 +151,23 @@ html.ytp-native-hidden {
 .ytp-tl-tbody {
   display: flex;
   flex-direction: column;
-  overflow-anchor: none;
+}
+
+// Repère de fin de liste observé par pagination.ts (sans hauteur propre)
+.ytp-tl-sentinel {
+  height: 1px;
+  pointer-events: none;
 }
 
 // ── Ligne ─────────────────────────────────────────────────────
 .ytp-tl-row {
   @include tl-columns;
   height: 56px;
+  // Plusieurs centaines de lignes : le navigateur saute la mise en page et le
+  // rendu de celles qui sont hors écran. La hauteur étant fixe, la barre de
+  // défilement reste juste.
+  content-visibility: auto;
+  contain-intrinsic-size: auto 56px;
   padding: 0 16px;
   border-radius: 4px;
   cursor: pointer;
