@@ -50,6 +50,13 @@ const SEL_WATCHED = [
 ].join(', ');
 /** Conteneur injecté par l'extension : ses mutations ne doivent pas relancer l'extraction */
 const SEL_OWN_ROOT = '#ytp-tracklist-root';
+/** Tous les rendus vidéo, quelle que soit la page ou l'interface */
+export const SEL_RENDERERS = [
+  SEL_VIDEO_RENDERER,
+  SEL_RICH_ITEM,
+  SEL_PLAYLIST_ITEM,
+  SEL_LOCKUP,
+].join(', ');
 
 // ── Utilitaires ───────────────────────────────────────────────
 
@@ -225,9 +232,7 @@ function currentPageChannel(): { name: string | null; url: string } | null {
  * Déduplication par videoId (le même clip peut apparaître 2× lors du scroll).
  */
 export function extractTracks(): Track[] {
-  const renderers = activePageRoot().querySelectorAll<Element>(
-    `${SEL_VIDEO_RENDERER}, ${SEL_RICH_ITEM}, ${SEL_PLAYLIST_ITEM}, ${SEL_LOCKUP}`
-  );
+  const renderers = activePageRoot().querySelectorAll<Element>(SEL_RENDERERS);
   const isPlaylistPage = detectPage() === 'playlist';
 
   const seen = new Set<string>();
@@ -269,29 +274,52 @@ export function watchForNewTracks(
   // Toute la page active : les résultats arrivent dans
   // ytd-section-list-renderer (recherche) ou ytd-rich-grid-renderer (chaîne)
   const container = activePageRoot();
+  const isPlaylistPage = detectPage() === 'playlist';
 
   let debounceTimer: ReturnType<typeof setTimeout> | null = null;
   const seenIds = new Set<string>();
+  // Les rendus déjà traités. Sans ce filtre on ré-extrairait toute la page à
+  // chaque lot : avec plusieurs centaines de vidéos, chacune demandant une
+  // poignée de querySelectorAll, c'est la principale source de ralentissement.
+  const processed = new WeakSet<Element>();
+  let nextIndex = 0;
 
-  // Pré-remplir les IDs déjà extraits
-  extractTracks().forEach((t) => seenIds.add(t.id));
+  /** Ne traite que les rendus jamais vus, dans l'ordre du document. */
+  const collectNew = (): Track[] => {
+    const tracks: Track[] = [];
+
+    container.querySelectorAll<Element>(SEL_RENDERERS).forEach((el) => {
+      if (processed.has(el)) return;
+      processed.add(el);
+
+      const track = extractFromRenderer(el, nextIndex, isPlaylistPage);
+      if (!track) return;
+      if (seenIds.has(track.id)) return; // dédoublonnage
+
+      seenIds.add(track.id);
+      nextIndex++;
+      tracks.push(track);
+    });
+
+    return tracks;
+  };
+
+  // Pré-remplir avec ce qui est déjà affiché
+  collectNew();
 
   const observer = new MutationObserver((mutations) => {
     // Nos propres ajouts de lignes sont dans le conteneur observé : sans ce
-    // filtre, chaque appendTracks() relancerait une extraction complète (et
-    // repousserait le debounce indéfiniment sur les longues listes).
+    // filtre, chaque appendTracks() relancerait une extraction (et repousserait
+    // le debounce indéfiniment sur les longues listes).
     if (mutations.every((m) => (m.target as Element).closest?.(SEL_OWN_ROOT))) return;
 
-    // Debounce : on attend 300ms après le dernier mutation pour extraire
+    // Debounce court : la tracklist doit grandir vite, c'est sa hauteur qui
+    // éloigne la sentinelle de pagination de YouTube.
     if (debounceTimer !== null) clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
-      const allTracks = extractTracks();
-      const newTracks = allTracks.filter((t) => !seenIds.has(t.id));
-      if (newTracks.length > 0) {
-        newTracks.forEach((t) => seenIds.add(t.id));
-        onNewTracks(newTracks);
-      }
-    }, 300);
+      const newTracks = collectNew();
+      if (newTracks.length > 0) onNewTracks(newTracks);
+    }, 120);
   });
 
   observer.observe(container, {

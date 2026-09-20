@@ -17,6 +17,8 @@ const ROW_ATTR = 'data-track-id';
 const NATIVE_HIDDEN_CLASS = 'ytp-native-hidden';
 /** Posée sur la racine quand l'utilisateur n'est pas connecté : masque « j'aime » et playlists */
 const ANON_CLASS = 'ytp-tl-root--anonymous';
+/** Repère de fin de liste, observé par pagination.ts */
+const SENTINEL_ID = 'ytp-tl-sentinel';
 /** Au-delà, YouTube considère la vidéo comme vue et non comme « à reprendre » */
 const WATCHED_THRESHOLD = 90;
 
@@ -400,7 +402,19 @@ export function renderTracklist(root: HTMLElement, tracks: Track[]): void {
   table.appendChild(body);
   root.appendChild(table);
 
+  // Après le tableau : les lignes s'ajoutent dans le tbody, jamais après lui
+  const sentinel = document.createElement('div');
+  sentinel.id = SENTINEL_ID;
+  sentinel.className = 'ytp-tl-sentinel';
+  sentinel.setAttribute('aria-hidden', 'true');
+  root.appendChild(sentinel);
+
   updateTrackCount(tracks.length);
+}
+
+/** Repère de fin de liste, à confier à pagination.ts. */
+export function getSentinel(): HTMLElement | null {
+  return document.getElementById(SENTINEL_ID);
 }
 
 /**
