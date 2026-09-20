@@ -1,7 +1,7 @@
 {
   "name": "youtube-audio-player",
   "private": true,
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Chrome extension that turns YouTube search results, channels and playlists into a compact tracklist with a floating player — browse music and type beats more easily.",
   "author": "Hugo Sohm <contact@hugosohm.fr>",
   "license": "AGPL-3.0-or-later",
