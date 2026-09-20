@@ -20,6 +20,7 @@ import {
   setRowPlayingState,
   unmountTracklist,
   setPlayCallback,
+  getSentinel,
 } from './tracklist';
 import {
   mountPlayer,
@@ -32,6 +33,7 @@ import {
 } from './player';
 import { registerKeyboardShortcuts, unregisterKeyboardShortcuts } from './keyboard';
 import { loadLikes } from './library';
+import { checkPagination, unwatchPagination, watchPagination } from './pagination';
 import { initToggleState, isEnabled, showToggle, hideToggle } from './toggle';
 import type { Track } from './types';
 
@@ -111,7 +113,14 @@ async function init(): Promise<void> {
     });
     appendTracks(newTracks);
     updatePlaylist([...allTracks]);
+
+    // La liste vient de grandir : le bas est peut-être encore à portée
+    checkPagination();
   });
+
+  // Pagination à la demande : sans ça, YouTube charge toute la chaîne d'un coup
+  const sentinel = getSentinel();
+  if (sentinel) watchPagination(sentinel);
 
   registerKeyboardShortcuts();
   isExtensionMounted = true;
@@ -136,6 +145,7 @@ function cleanup(): void {
   cleanupWatcher?.();
   cleanupWatcher = null;
 
+  unwatchPagination();
   unmountTracklist();
   unmountPlayer();
   unregisterKeyboardShortcuts();
