@@ -6,7 +6,7 @@
     "message": "Browse music and type beats more easily on YouTube: a compact tracklist and a floating player, without leaving the page."
   },
   "actionTitle": {
-    "message": "Turn List mode on / off"
+    "message": "YouTube Audio Player — List mode and theme"
   },
   "toggleTitle": {
     "message": "Turn the tracklist on / off (YouTube Audio Player)"
@@ -190,5 +190,23 @@
         "content": "$1"
       }
     }
+  },
+  "popupListModeHint": {
+    "message": "Show YouTube results as a compact tracklist"
+  },
+  "themeTitle": {
+    "message": "Player theme"
+  },
+  "themeHint": {
+    "message": "Applies to the floating player only"
+  },
+  "themeDark": {
+    "message": "Dark"
+  },
+  "themeLight": {
+    "message": "Light"
+  },
+  "themeItunes": {
+    "message": "iTunes 2000s"
   }
 }

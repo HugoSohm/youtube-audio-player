@@ -18,8 +18,10 @@
 
 import type { Track, PlayerState, VideoQuality, PlayerQualityInfo } from './types';
 import './styles/player.scss';
+import './styles/themes.scss';
 import { cacheLikeState } from './library';
 import { t } from './i18n';
+import { loadTheme, parseTheme, THEME_STORAGE_KEY, type PlayerTheme } from './themes';
 
 // ── Constantes ────────────────────────────────────────────────
 const PLAYER_ID = 'ytp-player-widget';
@@ -457,6 +459,7 @@ export async function mountPlayer(playlist: Track[]): Promise<void> {
   }
 
   await loadSavedPrefs();
+  applyTheme(await loadTheme());
   updateVolumeUi();
   updateRepeatUi();
   updateQualityUi();
@@ -491,6 +494,21 @@ function bindControls(): void {
   bindQualityMenu();
   bindTitleTooltip();
 }
+
+// ── Thème ─────────────────────────────────────────────────────
+
+/** Thème choisi dans la popup de l'extension (voir themes.ts) */
+function applyTheme(theme: PlayerTheme): void {
+  const widget = document.getElementById(PLAYER_ID);
+  if (widget) widget.dataset.theme = theme;
+}
+
+// Changement depuis la popup : appliqué tout de suite, sans recharger
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === 'local' && THEME_STORAGE_KEY in changes) {
+    applyTheme(parseTheme(changes[THEME_STORAGE_KEY]?.newValue));
+  }
+});
 
 // ── Répéter ───────────────────────────────────────────────────
 

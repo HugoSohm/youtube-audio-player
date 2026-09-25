@@ -1,0 +1,29 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>YouTube Audio Player</title>
+  </head>
+  <body>
+    <header class="pp-header">
+      <img src="/icons/icon48.png" width="24" height="24" alt="" />
+      <h1 data-i18n="appName"></h1>
+    </header>
+
+    <button class="pp-switch" id="pp-enabled" type="button" role="switch" aria-checked="true">
+      <span class="pp-switch__text">
+        <span class="pp-switch__label" data-i18n="toggleLabel"></span>
+        <span class="pp-switch__hint" data-i18n="popupListModeHint"></span>
+      </span>
+      <span class="pp-switch__track" aria-hidden="true"><span class="pp-switch__knob"></span></span>
+    </button>
+
+    <section class="pp-section" aria-labelledby="pp-theme-title">
+      <h2 id="pp-theme-title" data-i18n="themeTitle"></h2>
+      <p class="pp-hint" data-i18n="themeHint"></p>
+      <div class="pp-themes" id="pp-themes" role="radiogroup" aria-labelledby="pp-theme-title"></div>
+    </section>
+
+    <script type="module" src="./popup.ts"></script>
+  </body>
+</html>

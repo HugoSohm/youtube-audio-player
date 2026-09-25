@@ -23,7 +23,8 @@
 - ♾️ **Infinite scroll** — powered by YouTube's own pagination
 - ▶️ **Floating player** — play/pause, previous/next, draggable progress bar, ±10 s, repeat, vertical volume, video quality, auto-next, copy the video link
 - 🎬 **Clean video** — the YouTube overlay is hidden, but the video and ads stay visible (skip button included)
-- 🔀 **One-click toggle** — a *List mode* switch in the YouTube top bar (or the extension icon), synced across tabs
+- 🔀 **One-click toggle** — a *List mode* switch in the YouTube top bar (or the extension popup), synced across tabs
+- 🎨 **Player themes** — Dark, Light or a mid-2000s *iTunes* look, picked from the extension popup (the YouTube interface itself is left untouched)
 - ⌨️ **Keyboard shortcuts** — see below
 - 🌍 **Localized** in English, French and Spanish
 - 🔒 **Private** — no account, no analytics, no data leaves your browser ([privacy policy](PRIVACY.md))
@@ -84,7 +85,9 @@ src/
 ├── player.ts            Floating player (hidden /watch iframe driven through its <video> element)
 ├── toggle.ts            "List mode" switch in the YouTube top bar
 ├── keyboard.ts          Keyboard shortcuts
-├── background.ts        Service worker: toolbar toggle, video quality
+├── popup.ts / popup.html  Toolbar popup: List mode switch, player theme
+├── themes.ts            Player themes (styles in styles/themes.scss)
+├── background.ts        Service worker: OFF badge, video quality
 ├── i18n.ts              chrome.i18n helper
 ├── types.ts             Shared types
 └── styles/              SCSS

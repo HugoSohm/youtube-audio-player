@@ -12,7 +12,8 @@
     "128": "icons/icon128.png"
   },
   "action": {
-    "default_title": "__MSG_actionTitle__"
+    "default_title": "__MSG_actionTitle__",
+    "default_popup": "src/popup.html"
   },
   "background": {
     "service_worker": "src/background.ts",

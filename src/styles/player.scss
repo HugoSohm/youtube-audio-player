@@ -15,16 +15,41 @@ $player-video-height: 196px;
   right: 24px;
   z-index: $z-player;
 
+  // Couleurs du thème "Sombre" (par défaut) — surchargées par themes.scss
+  --ytp-bg: #1a1a1a;
+  --ytp-border: rgba(255, 255, 255, 0.1);
+  --ytp-radius: 12px;
+  --ytp-shadow: 0 8px 32px rgba(0, 0, 0, 0.7);
+  --ytp-font: #{$font-family};
+  --ytp-text: #{$text-primary};
+  --ytp-text-2: #{$text-secondary};
+  --ytp-text-3: #{$text-muted};
+  --ytp-accent: #{$accent};
+  --ytp-accent-soft: rgba(29, 185, 84, 0.4);
+  --ytp-accent-bg: rgba(29, 185, 84, 0.1);
+  --ytp-hover: rgba(255, 255, 255, 0.08);
+  --ytp-chip-bg: rgba(255, 255, 255, 0.06);
+  --ytp-chip-border: rgba(255, 255, 255, 0.12);
+  --ytp-chip-border-hover: rgba(255, 255, 255, 0.3);
+  --ytp-popover-bg: #282828;
+  --ytp-popover-border: rgba(255, 255, 255, 0.08);
+  --ytp-popover-shadow: 0 6px 20px rgba(0, 0, 0, 0.6);
+  --ytp-track: rgba(255, 255, 255, 0.15);
+  --ytp-fill: #{$text-primary};
+  --ytp-thumb: #{$text-primary};
+  --ytp-play-bg: #{$text-primary};
+  --ytp-play-fg: #000;
+
   width: $player-width;
 
-  background: #1a1a1a;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
+  background: var(--ytp-bg);
+  border: 1px solid var(--ytp-border);
+  border-radius: var(--ytp-radius);
   overflow: hidden;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7);
+  box-shadow: var(--ytp-shadow);
 
-  font-family: $font-family;
-  color: $text-primary;
+  font-family: var(--ytp-font);
+  color: var(--ytp-text);
 
   // Caché par défaut, visible dès qu'une piste est lancée
   opacity: 0;
@@ -97,7 +122,7 @@ $player-video-height: 196px;
   }
 
   &:focus-visible {
-    outline: 2px solid $accent;
+    outline: 2px solid var(--ytp-accent);
     outline-offset: 1px;
   }
 }
@@ -134,16 +159,16 @@ $player-video-height: 196px;
 
   .ytp-err-link {
     font-size: 11px;
-    color: $accent;
+    color: var(--ytp-accent);
     text-decoration: none;
-    border: 1px solid rgba(29, 185, 84, 0.4);
+    border: 1px solid var(--ytp-accent-soft);
     padding: 4px 10px;
     border-radius: 99px;
     margin-top: 4px;
     transition: background 0.15s;
 
     &:hover {
-      background: rgba(29, 185, 84, 0.1);
+      background: var(--ytp-accent-bg);
     }
   }
 }
@@ -181,13 +206,13 @@ $player-video-height: 196px;
   padding: 6px 10px;
   font-size: 12px;
   line-height: 1.4;
-  color: $text-primary;
+  color: var(--ytp-text);
   white-space: normal;
   overflow-wrap: anywhere;
-  background: #282828;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--ytp-popover-bg);
+  border: 1px solid var(--ytp-popover-border);
   border-radius: 6px;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6);
+  box-shadow: var(--ytp-popover-shadow);
   pointer-events: none;
 
   opacity: 0;
@@ -210,25 +235,25 @@ $player-video-height: 196px;
   min-width: 40px;
   height: 22px;
   padding: 0 7px;
-  font-family: $font-family;
+  font-family: inherit;
   font-size: 10px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
-  color: $text-secondary;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--ytp-text-2);
+  background: var(--ytp-chip-bg);
+  border: 1px solid var(--ytp-chip-border);
   border-radius: 99px;
   cursor: pointer;
   transition: color 0.15s, border-color 0.15s, background 0.15s;
 
   &:hover,
   .ytp-w-quality--open & {
-    color: $text-primary;
-    border-color: rgba(255, 255, 255, 0.3);
+    color: var(--ytp-text);
+    border-color: var(--ytp-chip-border-hover);
   }
 
   &:focus-visible {
-    outline: 2px solid $accent;
+    outline: 2px solid var(--ytp-accent);
     outline-offset: 1px;
   }
 }
@@ -246,10 +271,10 @@ $player-video-height: 196px;
   padding: 3px;
   display: none;
   flex-direction: column;
-  background: #282828;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--ytp-popover-bg);
+  border: 1px solid var(--ytp-popover-border);
   border-radius: 8px;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6);
+  box-shadow: var(--ytp-popover-shadow);
 
   .ytp-w-quality--open & {
     display: flex;
@@ -261,11 +286,11 @@ $player-video-height: 196px;
   align-items: center;
   gap: 6px;
   padding: 3px 8px;
-  font-family: $font-family;
+  font-family: inherit;
   font-size: 11px;
   line-height: 1.35;
   text-align: left;
-  color: $text-secondary;
+  color: var(--ytp-text-2);
   background: none;
   border: none;
   border-radius: 4px;
@@ -282,15 +307,15 @@ $player-video-height: 196px;
 
   &:hover,
   &:focus-visible {
-    color: $text-primary;
-    background: rgba(255, 255, 255, 0.08);
+    color: var(--ytp-text);
+    background: var(--ytp-hover);
     outline: none;
   }
 
   &[aria-checked='true'] {
-    color: $accent;
+    color: var(--ytp-accent);
 
-    &::before { background: $accent; }
+    &::before { background: var(--ytp-accent); }
   }
 }
 
@@ -305,7 +330,7 @@ $player-video-height: 196px;
   display: block;
   font-size: 13px;
   font-weight: 500;
-  color: $text-primary;
+  color: var(--ytp-text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -320,7 +345,7 @@ $player-video-height: 196px;
 
 .ytp-w-artist {
   font-size: 11px;
-  color: $text-muted;
+  color: var(--ytp-text-3);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -335,7 +360,7 @@ $player-video-height: 196px;
     text-decoration: none;
 
     &:hover {
-      color: $text-primary;
+      color: var(--ytp-text);
       text-decoration: underline;
     }
   }
@@ -353,7 +378,7 @@ $player-video-height: 196px;
 .ytp-w-btn {
   background: none;
   border: none;
-  color: $text-secondary;
+  color: var(--ytp-text-2);
   cursor: pointer;
   padding: 6px;
   border-radius: 50%;
@@ -369,8 +394,8 @@ $player-video-height: 196px;
   }
 
   &:hover {
-    color: $text-primary;
-    background: rgba(255, 255, 255, 0.08);
+    color: var(--ytp-text);
+    background: var(--ytp-hover);
   }
 
   &:active {
@@ -378,7 +403,7 @@ $player-video-height: 196px;
   }
 
   &:focus-visible {
-    outline: 2px solid $accent;
+    outline: 2px solid var(--ytp-accent);
     outline-offset: 1px;
   }
 
@@ -406,7 +431,7 @@ $player-video-height: 196px;
     text { display: none; }
 
     &.ytp-w-btn--on {
-      color: $accent;
+      color: var(--ytp-accent);
 
       text { display: inline; }
 
@@ -418,7 +443,7 @@ $player-video-height: 196px;
         width: 4px;
         height: 4px;
         border-radius: 50%;
-        background: $accent;
+        background: var(--ytp-accent);
         transform: translateX(-50%);
       }
     }
@@ -440,7 +465,7 @@ $player-video-height: 196px;
     .ytp-copy-check { display: none; }
 
     &.ytp-w-btn--copied {
-      color: $accent;
+      color: var(--ytp-accent);
       .ytp-copy-icon { display: none; }
       .ytp-copy-check { display: inline; }
     }
@@ -450,8 +475,8 @@ $player-video-height: 196px;
   &--play {
     width: 36px;
     height: 36px;
-    background: $text-primary;
-    color: #000;
+    background: var(--ytp-play-bg);
+    color: var(--ytp-play-fg);
     border-radius: 50%;
     transition: background 0.15s, transform 0.1s;
 
@@ -461,8 +486,8 @@ $player-video-height: 196px;
     }
 
     &:hover {
-      background: $accent;
-      color: #000;
+      background: var(--ytp-accent);
+      color: var(--ytp-play-fg);
     }
   }
 }
@@ -485,7 +510,7 @@ $player-video-height: 196px;
   outline: none;
 
   &:focus-visible .ytp-w-progress__track {
-    outline: 2px solid $accent;
+    outline: 2px solid var(--ytp-accent);
     outline-offset: 3px;
   }
 }
@@ -497,7 +522,7 @@ $player-video-height: 196px;
   top: 50%;
   height: 5px;
   transform: translateY(-50%);
-  background: rgba(255, 255, 255, 0.15);
+  background: var(--ytp-track);
   border-radius: 99px;
   overflow: hidden;
   transition: height 0.15s;
@@ -511,12 +536,12 @@ $player-video-height: 196px;
 .ytp-w-progress__fill {
   height: 100%;
   width: var(--progress);
-  background: $text-primary;
+  background: var(--ytp-fill);
   border-radius: 99px;
 
   .ytp-w-progress:hover &,
   .ytp-w-progress--dragging & {
-    background: $accent;
+    background: var(--ytp-accent);
   }
 }
 
@@ -527,7 +552,7 @@ $player-video-height: 196px;
   left: var(--progress);
   width: 14px;
   height: 14px;
-  background: $text-primary;
+  background: var(--ytp-thumb);
   border-radius: 50%;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
   transform: translate(-50%, -50%) scale(0);
@@ -592,10 +617,10 @@ $player-video-height: 196px;
     position: absolute;
     inset: 0 0 6px;
     z-index: -1;
-    background: #282828;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: var(--ytp-popover-bg);
+    border: 1px solid var(--ytp-popover-border);
     border-radius: 18px;
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6);
+    box-shadow: var(--ytp-popover-shadow);
   }
 
   .ytp-w-vol:hover &,
@@ -624,12 +649,12 @@ $player-video-height: 196px;
   left: 50%;
   width: 4px;
   transform: translateX(-50%);
-  background: rgba(255, 255, 255, 0.15);
+  background: var(--ytp-track);
   border-radius: 99px;
   overflow: hidden;
 
   .ytp-w-vol__bar:focus-visible & {
-    outline: 2px solid $accent;
+    outline: 2px solid var(--ytp-accent);
     outline-offset: 3px;
   }
 }
@@ -640,11 +665,11 @@ $player-video-height: 196px;
   right: 0;
   bottom: 0;
   height: var(--volume);
-  background: $text-primary;
+  background: var(--ytp-fill);
 
   .ytp-w-vol__bar:hover &,
   .ytp-w-vol--dragging & {
-    background: $accent;
+    background: var(--ytp-accent);
   }
 }
 
@@ -654,7 +679,7 @@ $player-video-height: 196px;
   bottom: var(--volume);
   width: 12px;
   height: 12px;
-  background: $text-primary;
+  background: var(--ytp-thumb);
   border-radius: 50%;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
   transform: translate(-50%, 50%);
@@ -665,7 +690,7 @@ $player-video-height: 196px;
   display: flex;
   justify-content: space-between;
   font-size: 10px;
-  color: $text-muted;
+  color: var(--ytp-text-3);
   font-variant-numeric: tabular-nums;
   line-height: 1;
 }

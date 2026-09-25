@@ -2,8 +2,8 @@
 // ============================================================
 // background.ts — Service Worker MV3
 // ============================================================
-// - Un clic sur l'icône de l'extension bascule le "Mode liste"
-//   (les content scripts réagissent via chrome.storage.onChanged).
+// - Badge "OFF" sur l'icône quand le "Mode liste" est désactivé
+//   (l'icône ouvre la popup : mode liste + thème, voir popup.ts).
 // - Change la qualité vidéo du lecteur du widget.
 // ============================================================
 
@@ -20,10 +20,6 @@ async function readEnabled(): Promise<boolean> {
   const stored = await chrome.storage.local.get(STORAGE_KEY);
   return stored[STORAGE_KEY] !== false;
 }
-
-chrome.action.onClicked.addListener(async () => {
-  await chrome.storage.local.set({ [STORAGE_KEY]: !(await readEnabled()) });
-});
 
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area !== 'local' || !(STORAGE_KEY in changes)) return;
