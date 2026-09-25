@@ -302,6 +302,7 @@ $player-video-height: 196px;
 }
 
 .ytp-w-title {
+  display: block;
   font-size: 13px;
   font-weight: 500;
   color: $text-primary;
@@ -309,6 +310,12 @@ $player-video-height: 196px;
   overflow: hidden;
   text-overflow: ellipsis;
   line-height: 1.3;
+  text-decoration: none;
+
+  // Lien vers la vidéo (onglet séparé)
+  &[href]:hover {
+    text-decoration: underline;
+  }
 }
 
 .ytp-w-artist {
@@ -425,6 +432,17 @@ $player-video-height: 196px;
     svg {
       width: 18px;
       height: 18px;
+    }
+  }
+
+  // Copier le lien : une coche remplace l'icône après la copie
+  &--copy {
+    .ytp-copy-check { display: none; }
+
+    &.ytp-w-btn--copied {
+      color: $accent;
+      .ytp-copy-icon { display: none; }
+      .ytp-copy-check { display: inline; }
     }
   }
 

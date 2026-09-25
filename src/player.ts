@@ -247,7 +247,7 @@ function buildWidget(): HTMLElement {
     <div class="ytp-w-controls">
       <div class="ytp-w-head">
         <div class="ytp-w-meta">
-          <div class="ytp-w-title" id="ytp-w-title">${t('noTrack')}</div>
+          <a class="ytp-w-title" id="ytp-w-title" target="_blank" rel="noopener noreferrer">${t('noTrack')}</a>
           <div class="ytp-w-tooltip" id="ytp-w-tooltip" role="tooltip"></div>
           <a class="ytp-w-artist" id="ytp-w-artist" target="_blank" rel="noopener noreferrer"></a>
         </div>
@@ -257,12 +257,12 @@ function buildWidget(): HTMLElement {
                     aria-haspopup="menu" aria-expanded="false">Auto</button>
             <div class="ytp-w-quality__menu" id="ytp-w-quality-menu" role="menu"></div>
           </div>
-          <a class="ytp-w-btn ytp-w-btn--action" id="ytp-w-open-yt" href="https://www.youtube.com/"
-             target="_blank" rel="noopener noreferrer" title="${t('openVideo')}">
-            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <path d="M21.6 7.2a2.5 2.5 0 0 0-1.76-1.77C18.28 5 12 5 12 5s-6.28 0-7.84.43A2.5 2.5 0 0 0 2.4 7.2C2 8.77 2 12 2 12s0 3.23.4 4.8a2.5 2.5 0 0 0 1.76 1.77C5.72 19 12 19 12 19s6.28 0 7.84-.43a2.5 2.5 0 0 0 1.76-1.77C22 15.23 22 12 22 12s0-3.23-.4-4.8zM10 15V9l5.2 3z"/>
+          <button class="ytp-w-btn ytp-w-btn--action ytp-w-btn--copy" id="ytp-w-copy" title="${t('copyLink')}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <g class="ytp-copy-icon"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></g>
+              <path class="ytp-copy-check" d="m5 12.5 4.5 4.5L19 7.5" stroke-width="2.5"/>
             </svg>
-          </a>
+          </button>
         </div>
       </div>
 
@@ -374,10 +374,12 @@ function bindControls(): void {
   const volBar = document.getElementById('ytp-w-volume');
   if (vol && volBar) bindVolumeBar(vol, volBar);
 
-  // Ouvrir sur YouTube : on met le widget en pause pour éviter le double son
-  document.getElementById('ytp-w-open-yt')?.addEventListener('click', () => {
-    frameVideo()?.pause();
+  // Titre → vidéo sur YouTube : on met le widget en pause pour éviter le double son
+  document.getElementById('ytp-w-title')?.addEventListener('click', () => {
+    if (state.currentTrack) frameVideo()?.pause();
   });
+
+  document.getElementById('ytp-w-copy')?.addEventListener('click', copyVideoLink);
 
   document.getElementById('ytp-w-repeat')?.addEventListener('click', toggleRepeat);
 
@@ -489,6 +491,35 @@ function setQuality(quality: VideoQuality): void {
 function updateQualityUi(): void {
   const btn = document.getElementById('ytp-w-quality-btn');
   if (btn) btn.textContent = QUALITY_LABELS[state.quality];
+}
+
+// ── Copier le lien ────────────────────────────────────────────
+
+const videoUrl = (track: Track): string =>
+  `https://www.youtube.com/watch?v=${encodeURIComponent(track.id)}`;
+
+let copyResetTimer: ReturnType<typeof setTimeout> | null = null;
+
+/** Copie le lien de la vidéo en cours ; une coche confirme la copie */
+async function copyVideoLink(): Promise<void> {
+  const track = state.currentTrack;
+  const btn = document.getElementById('ytp-w-copy');
+  if (!track || !btn) return;
+
+  try {
+    await navigator.clipboard.writeText(videoUrl(track));
+  } catch (err) {
+    console.error('[YTP] Copie du lien', err);
+    return;
+  }
+
+  btn.classList.add('ytp-w-btn--copied');
+  btn.title = t('linkCopied');
+  if (copyResetTimer) clearTimeout(copyResetTimer);
+  copyResetTimer = setTimeout(() => {
+    btn.classList.remove('ytp-w-btn--copied');
+    btn.title = t('copyLink');
+  }, 1500);
 }
 
 // ── Tooltip du titre (uniquement s'il est tronqué) ────────────
@@ -769,7 +800,10 @@ function showWidget(): void {
 function updateWidgetInfo(track: Track): void {
   const title = document.getElementById('ytp-w-title');
   const artist = document.getElementById('ytp-w-artist');
-  if (title) title.textContent = track.title;
+  if (title) {
+    title.textContent = track.title;
+    title.setAttribute('href', videoUrl(track));
+  }
   if (artist) {
     artist.textContent = track.artist;
     if (track.channelUrl) {
@@ -780,8 +814,6 @@ function updateWidgetInfo(track: Track): void {
       artist.removeAttribute('title');
     }
   }
-  const ytLink = document.getElementById('ytp-w-open-yt') as HTMLAnchorElement | null;
-  if (ytLink) ytLink.href = `https://www.youtube.com/watch?v=${encodeURIComponent(track.id)}`;
 }
 
 function setPlayIcon(playing: boolean): void {

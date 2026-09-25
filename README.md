@@ -21,7 +21,7 @@
 - 🎧 **Tracklist view** — title, artist, duration, one line per track, with an animated waveform on the playing track
 - 🔎 **Works everywhere you dig** — search results, channel *Videos* tab, playlists, Liked videos and Watch Later
 - ♾️ **Infinite scroll** — powered by YouTube's own pagination
-- ▶️ **Floating player** — play/pause, previous/next, draggable progress bar, ±10 s, repeat, vertical volume, video quality, auto-next
+- ▶️ **Floating player** — play/pause, previous/next, draggable progress bar, ±10 s, repeat, vertical volume, video quality, auto-next, copy the video link
 - 🎬 **Clean video** — the YouTube overlay is hidden, but the video and ads stay visible (skip button included)
 - 🔀 **One-click toggle** — a *List mode* switch in the YouTube top bar (or the extension icon), synced across tabs
 - ⌨️ **Keyboard shortcuts** — see below

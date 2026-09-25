@@ -85,8 +85,11 @@
   "qualityAuto": {
     "message": "Auto"
   },
-  "openVideo": {
-    "message": "Ouvrir la vidéo sur YouTube"
+  "copyLink": {
+    "message": "Copier le lien de la vidéo"
+  },
+  "linkCopied": {
+    "message": "Lien copié"
   },
   "openChannel": {
     "message": "Ouvrir la chaîne $arg1$",
