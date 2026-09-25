@@ -96,18 +96,6 @@
       }
     }
   },
-  "riptuneSend": {
-    "message": "Descargar y analizar con Riptune"
-  },
-  "riptuneSent": {
-    "message": "Enviado a Riptune"
-  },
-  "riptuneNotInstalled": {
-    "message": "Riptune no está instalado: abriendo riptune.app"
-  },
-  "riptuneError": {
-    "message": "No se encuentra Riptune"
-  },
   "repeatOn": {
     "message": "Repetir la pista (R)"
   },

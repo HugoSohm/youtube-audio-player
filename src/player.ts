@@ -263,27 +263,6 @@ function buildWidget(): HTMLElement {
               <path d="M21.6 7.2a2.5 2.5 0 0 0-1.76-1.77C18.28 5 12 5 12 5s-6.28 0-7.84.43A2.5 2.5 0 0 0 2.4 7.2C2 8.77 2 12 2 12s0 3.23.4 4.8a2.5 2.5 0 0 0 1.76 1.77C5.72 19 12 19 12 19s6.28 0 7.84-.43a2.5 2.5 0 0 0 1.76-1.77C22 15.23 22 12 22 12s0-3.23-.4-4.8zM10 15V9l5.2 3z"/>
             </svg>
           </a>
-          <button class="ytp-w-btn ytp-w-btn--action ytp-w-btn--riptune" id="ytp-w-riptune" title="${t('riptuneSend')}">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <defs>
-                <linearGradient id="ytp-riptune-grad" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0%" stop-color="#a855f7"/><stop offset="100%" stop-color="#3b82f6"/>
-                </linearGradient>
-              </defs>
-              <g class="ytp-riptune-bars" fill="url(#ytp-riptune-grad)">
-                <rect x="2" y="10" width="2.6" height="4" rx="1.3"/>
-                <rect x="5.5" y="7.5" width="2.6" height="9" rx="1.3"/>
-                <rect x="9" y="4" width="2.6" height="16" rx="1.3"/>
-                <rect x="12.5" y="8" width="2.6" height="8" rx="1.3"/>
-                <rect x="16" y="5.5" width="2.6" height="13" rx="1.3"/>
-                <rect x="19.5" y="9.5" width="2.6" height="5" rx="1.3"/>
-              </g>
-              <path class="ytp-riptune-check" d="m5 12.5 4.5 4.5L19 7.5" fill="none" stroke="currentColor"
-                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-              <path class="ytp-riptune-fail" d="M7 7l10 10M17 7 7 17" fill="none" stroke="currentColor"
-                    stroke-width="2.5" stroke-linecap="round"/>
-            </svg>
-          </button>
         </div>
       </div>
 
@@ -400,7 +379,6 @@ function bindControls(): void {
     frameVideo()?.pause();
   });
 
-  document.getElementById('ytp-w-riptune')?.addEventListener('click', sendToRiptune);
   document.getElementById('ytp-w-repeat')?.addEventListener('click', toggleRepeat);
 
   bindQualityMenu();
@@ -581,41 +559,6 @@ function bindVolumeBar(container: HTMLElement, bar: HTMLElement): void {
     e.stopPropagation(); // ne pas déclencher le seek global de ← →
     setVolume(state.volume + step);
   });
-}
-
-// ── Riptune ───────────────────────────────────────────────────
-
-/**
- * Envoie la piste courante à l'app Riptune (via background.ts).
- * Si l'app n'est pas installée, background.ts ouvre riptune.app.
- * Le bouton reste en attente pendant le lancement éventuel de l'app.
- */
-async function sendToRiptune(): Promise<void> {
-  const track = state.currentTrack;
-  const btn = document.getElementById('ytp-w-riptune');
-  if (!track || !btn || btn.classList.contains('ytp-w-btn--busy')) return;
-
-  btn.classList.add('ytp-w-btn--busy');
-  try {
-    const response = await chrome.runtime.sendMessage({
-      type: 'RIPTUNE_DOWNLOAD',
-      url: `https://www.youtube.com/watch?v=${track.id}`,
-    }) as { success?: boolean; result?: 'app' | 'website' } | undefined;
-
-    const sent = response?.success && response.result === 'app';
-    btn.classList.add(sent ? 'ytp-w-btn--sent' : 'ytp-w-btn--failed');
-    btn.title = t(sent ? 'riptuneSent' : response?.result === 'website' ? 'riptuneNotInstalled' : 'riptuneError');
-  } catch (err) {
-    console.error('[YTP] Riptune', err);
-    btn.classList.add('ytp-w-btn--failed');
-    btn.title = t('riptuneError');
-  } finally {
-    btn.classList.remove('ytp-w-btn--busy');
-    setTimeout(() => {
-      btn.classList.remove('ytp-w-btn--sent', 'ytp-w-btn--failed');
-      btn.title = t('riptuneSend');
-    }, 2000);
-  }
 }
 
 /**

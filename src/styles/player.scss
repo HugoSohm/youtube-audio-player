@@ -157,7 +157,7 @@ $player-video-height: 196px;
   gap: 8px;
 }
 
-// ── Titre + actions (YouTube / Riptune) ──────────────────────
+// ── Titre + actions (YouTube) ──────────────────────
 .ytp-w-head {
   display: flex;
   align-items: center;
@@ -425,27 +425,6 @@ $player-video-height: 196px;
     svg {
       width: 18px;
       height: 18px;
-    }
-  }
-
-  // Riptune : logo en dégradé, coche verte / rouge après envoi
-  &--riptune {
-    .ytp-riptune-check,
-    .ytp-riptune-fail { display: none; }
-
-    &.ytp-w-btn--busy { opacity: 0.5; pointer-events: none; }
-
-    &.ytp-w-btn--sent,
-    &.ytp-w-btn--failed {
-      .ytp-riptune-bars { display: none; }
-    }
-    &.ytp-w-btn--sent {
-      color: $accent;
-      .ytp-riptune-check { display: inline; }
-    }
-    &.ytp-w-btn--failed {
-      color: #f15e6c;
-      .ytp-riptune-fail { display: inline; }
     }
   }
 

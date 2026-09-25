@@ -35,7 +35,6 @@
   ],
   "permissions": ["storage", "scripting"],
   "host_permissions": [
-    "https://www.youtube.com/*",
-    "http://127.0.0.1:4774/*"
+    "https://www.youtube.com/*"
   ]
 }

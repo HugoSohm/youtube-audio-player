@@ -19,16 +19,11 @@ The following settings are saved with Chrome's local storage (`chrome.storage.lo
 - repeat setting
 - preferred video quality
 
-## Riptune integration (optional)
-
-When you click the Riptune button in the player, the extension sends the URL of the current YouTube video to the Riptune desktop application **running on your own computer** (`http://127.0.0.1:4774`). If the application is not running, it tries to open it via the `riptune://` link, and opens https://riptune.app if it is not installed. This only happens when you click the button.
-
 ## Permissions
 
 - **storage**: save the settings listed above locally.
 - **scripting**: change the video quality of the YouTube player shown inside the extension's floating player.
 - **youtube.com**: display the tracklist and the player on YouTube pages.
-- **127.0.0.1:4774**: send a track to the Riptune application installed on your computer, on request.
 
 ## Third parties
 
