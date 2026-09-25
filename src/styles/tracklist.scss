@@ -192,16 +192,6 @@ html.ytp-native-hidden:not(.ytp-load-more) {
     }
   }
 
-  // ── Déjà vue en entier : estompée, comme un message lu ──
-  &--seen {
-    .ytp-tl-title {
-      color: $text-secondary;
-    }
-    .ytp-tl-thumb {
-      opacity: 0.55;
-    }
-  }
-
   // ── Active (piste en cours, numéro en vert) ──
   &--active {
     .ytp-tl-title {
