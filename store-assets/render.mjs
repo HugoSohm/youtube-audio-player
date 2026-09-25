@@ -85,6 +85,8 @@ function template(file, marker) {
 // Langues générées : toutes par défaut, ou --lang=fr|en|es
 const LANGS = ['fr', 'en', 'es'];
 const LANG_ARG = process.argv.find((a) => a.startsWith('--lang='))?.slice(7);
+/** Langue en cours de rendu */
+let CURRENT_LANG = 'en';
 if (LANG_ARG && !LANGS.includes(LANG_ARG)) throw new Error(`Langue inconnue : ${LANG_ARG}`);
 
 /** Textes de l'interface (public/_locales) pour la langue en cours de rendu */
@@ -148,6 +150,10 @@ function cover(i, w = 160, h = 160) {
   return `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
 }
 
+/** Date de publication façon YouTube ("il y a 3 jours"), dans la langue rendue */
+const AGES = [[2, 'day'], [5, 'day'], [1, 'week'], [2, 'week'], [3, 'week'], [1, 'month'], [2, 'month'], [4, 'month'], [6, 'month'], [1, 'year']];
+const published = (i) => new Intl.RelativeTimeFormat(CURRENT_LANG).format(-AGES[i % AGES.length][0], AGES[i % AGES.length][1]);
+
 const escapeHtml = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 // ── Blocs d'interface ─────────────────────────────────────────
@@ -156,10 +162,12 @@ function tracklist(tracks, activeIndex = -1) {
   const rows = tracks.map((t) => {
     const safe = {
       id: t.id, title: escapeHtml(t.title), artist: escapeHtml(t.artist),
-      duration: t.duration, thumbnail: cover(t.index),
+      duration: t.duration, thumbnail: cover(t.index), published: published(t.index),
     };
     const cls = t.index === activeIndex ? 'ytp-tl-row ytp-tl-row--active ytp-tl-row--playing' : 'ytp-tl-row';
-    return `<div class="${cls}" role="row">${fill(ROW_TPL, { displayIndex: t.index + 1, safe })}</div>`;
+    return `<div class="${cls}" role="row">${fill(ROW_TPL, {
+      displayIndex: t.index + 1, safe, liked: false, watched: false, watchedLabel: '', track: { watchedPercent: null },
+    })}</div>`;
   }).join('');
   return `<div id="ytp-tracklist-root" style="animation:none">
     <div class="ytp-tl-table"><div class="ytp-tl-thead">${fill(THEAD_TPL)}</div>
@@ -418,6 +426,7 @@ function renderKofiCover() {
 
 /** Captures et visuels promotionnels d'une langue → store-assets/out/<lang>/ */
 function renderLocale(lang) {
+  CURRENT_LANG = lang;
   MESSAGES = JSON.parse(read(`public/_locales/${lang}/messages.json`));
   const c = COPY[lang];
   const dir = path.join(OUT, lang);
