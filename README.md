@@ -74,6 +74,10 @@ Then in Chrome:
 | `npm run store-assets` | Regenerate the icons and the Chrome Web Store visuals (requires Chrome installed) |
 | `npm run promo-gif` | Render the animated promo GIF (`store-assets/out/promo-en.gif`, requires Chrome installed) |
 
+### Releases
+
+Bump `version` in both `manifest.json` and `package.json`, then merge into `main`. The **Release** workflow builds the Chrome Web Store ZIP and publishes it as a [GitHub release](https://github.com/HugoSohm/youtube-audio-player/releases) tagged `v<version>`. Pull requests run type-checking and the build (**CI** workflow).
+
 ### Project structure
 
 ```
