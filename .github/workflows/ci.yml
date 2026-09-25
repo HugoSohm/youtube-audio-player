@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  pull_request:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Same version in manifest.json and package.json
+        run: |
+          manifest=$(node -p "require('./manifest.json').version")
+          package=$(node -p "require('./package.json').version")
+          if [ "$manifest" != "$package" ]; then
+            echo "::error::manifest.json ($manifest) and package.json ($package) versions differ"
+            exit 1
+          fi
+
+      - run: npm run typecheck
+
+      - run: npm run build

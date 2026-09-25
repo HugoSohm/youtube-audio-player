@@ -1,0 +1,64 @@
+# Publie une release GitHub (tag vX.Y.Z + ZIP du Chrome Web Store)
+# dès qu'une nouvelle version de manifest.json arrive sur main.
+# Relançable à la main (onglet Actions) : ne fait rien si la release existe déjà.
+name: Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  check:
+    uses: ./.github/workflows/ci.yml
+
+  release:
+    needs: check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read the version
+        id: version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=$(node -p "require('./manifest.json').version")
+          echo "tag=v$version" >> "$GITHUB_OUTPUT"
+          if gh release view "v$version" >/dev/null 2>&1; then
+            echo "Release v$version already exists, nothing to do."
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/setup-node@v4
+        if: steps.version.outputs.exists == 'false'
+        with:
+          node-version: 20
+          cache: npm
+
+      - if: steps.version.outputs.exists == 'false'
+        run: npm ci
+
+      # Build de production sans sourcemaps → release/youtube-audio-player-vX.Y.Z.zip
+      - if: steps.version.outputs.exists == 'false'
+        run: npm run package
+
+      - name: Publish the GitHub release
+        if: steps.version.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          gh release create "$TAG" "release/youtube-audio-player-$TAG.zip" \
+            --target "$GITHUB_SHA" \
+            --title "$TAG" \
+            --generate-notes
