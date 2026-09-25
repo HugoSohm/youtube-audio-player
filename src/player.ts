@@ -86,6 +86,8 @@ let frame: HTMLIFrameElement | null = null;
 let documentListeners: AbortController | null = null;
 /** Piste pour laquelle la qualité souhaitée a déjà été appliquée */
 let qualityAppliedFor: string | null = null;
+/** Piste dont les chaînes en collaboration ont déjà été cherchées dans l'iframe */
+let collabCheckedFor: string | null = null;
 let boundVideo: HTMLVideoElement | null = null;
 let pollInterval: ReturnType<typeof setInterval> | null = null;
 /** Pendant un drag, la barre suit la souris et non la vidéo */
@@ -162,6 +164,109 @@ function tick(): void {
   }
 
   syncLikeFromFrame(doc, state.currentTrack.id);
+  syncCollabFromFrame(doc, state.currentTrack);
+}
+
+// ── Chaînes en collaboration ──────────────────────────────────
+// Dans la liste, une vidéo à plusieurs chaînes n'a aucun lien de chaîne
+// (YouTube ouvre une boîte de dialogue). La page /watch de l'iframe embarque
+// cette liste dans ytInitialData : on en tire un lien par chaîne.
+
+interface Channel {
+  name: string;
+  url: string;
+}
+
+function syncCollabFromFrame(doc: Document, track: Track): void {
+  if (track.channelUrl || collabCheckedFor === track.id) return;
+  // Pendant la navigation, l'iframe contient encore la page de la piste précédente
+  if (new URL(doc.URL).searchParams.get('v') !== track.id) return;
+
+  const data = readInitialData(doc);
+  if (!data) {
+    // Script pas encore analysé : on réessaie au prochain tick
+    if (doc.readyState === 'complete') collabCheckedFor = track.id;
+    return;
+  }
+  collabCheckedFor = track.id;
+
+  const channels = findCollaborators(data);
+  const artist = document.getElementById('ytp-w-artist');
+  if (channels.length && artist) renderArtists(artist, channels, track.artist);
+}
+
+function readInitialData(doc: Document): unknown {
+  const script = [...doc.scripts].find((s) => s.textContent?.includes('var ytInitialData'));
+  const text = script?.textContent ?? '';
+  try {
+    return JSON.parse(text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1));
+  } catch {
+    return null;
+  }
+}
+
+/** Premier objet (parcours en profondeur) qui possède la clé demandée */
+function findKey(node: unknown, key: string): unknown {
+  if (!node || typeof node !== 'object') return undefined;
+  if (key in node) return (node as Record<string, unknown>)[key];
+  for (const child of Object.values(node)) {
+    const found = findKey(child, key);
+    if (found !== undefined) return found;
+  }
+  return undefined;
+}
+
+/** Tous les objets (parcours en profondeur) qui possèdent la clé demandée */
+function findAllKeys(node: unknown, key: string, out: unknown[] = []): unknown[] {
+  if (!node || typeof node !== 'object') return out;
+  if (key in node) out.push((node as Record<string, unknown>)[key]);
+  for (const child of Object.values(node)) findAllKeys(child, key, out);
+  return out;
+}
+
+/** Collaborateurs listés dans la boîte de dialogue du propriétaire de la vidéo */
+function findCollaborators(data: unknown): Channel[] {
+  const owner = findKey((data as { contents?: unknown } | null)?.contents, 'videoOwnerRenderer');
+  const channels: Channel[] = [];
+
+  for (const item of findAllKeys(owner, 'listItemViewModel')) {
+    const name = (item as { title?: { content?: unknown } }).title?.content;
+    // Le titre pointe vers /channel/UC… et l'avatar vers /@handle : on préfère le handle
+    const paths = findAllKeys(item, 'canonicalBaseUrl').filter((p): p is string => typeof p === 'string');
+    const path = paths.find((p) => p.startsWith('/@')) ?? paths[0];
+    if (typeof name !== 'string' || !name || !path) continue;
+
+    const url = new URL(path, 'https://www.youtube.com').href;
+    if (!channels.some((c) => c.url === url)) channels.push({ name, url });
+  }
+
+  return channels;
+}
+
+/** Nom(s) de chaîne : un lien par chaîne (« A et B »), texte brut sans lien */
+function renderArtists(el: HTMLElement, channels: Channel[], fallback: string): void {
+  if (!channels.length) {
+    el.textContent = fallback;
+    return;
+  }
+
+  const links = channels.map((channel) => {
+    const a = document.createElement('a');
+    a.href = channel.url;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    a.title = t('openChannel', channel.name);
+    a.textContent = channel.name;
+    return a;
+  });
+
+  // Séparateurs dans la langue de YouTube (« A, B et C »)
+  const lang = document.documentElement.lang || undefined;
+  const parts = new Intl.ListFormat(lang, { type: 'conjunction' }).formatToParts(channels.map((c) => c.name));
+  let next = 0;
+  el.replaceChildren(
+    ...parts.map((part) => (part.type === 'element' ? links[next++] ?? part.value : part.value))
+  );
 }
 
 /**
@@ -249,7 +354,7 @@ function buildWidget(): HTMLElement {
         <div class="ytp-w-meta">
           <a class="ytp-w-title" id="ytp-w-title" target="_blank" rel="noopener noreferrer">${t('noTrack')}</a>
           <div class="ytp-w-tooltip" id="ytp-w-tooltip" role="tooltip"></div>
-          <a class="ytp-w-artist" id="ytp-w-artist" target="_blank" rel="noopener noreferrer"></a>
+          <div class="ytp-w-artist" id="ytp-w-artist"></div>
         </div>
         <div class="ytp-w-actions">
           <div class="ytp-w-quality" id="ytp-w-quality">
@@ -665,6 +770,7 @@ export function playTrack(track: Track): void {
 
 function loadInFrame(videoId: string): void {
   qualityAppliedFor = null;
+  collabCheckedFor = null;
   const url = `https://www.youtube.com/watch?v=${encodeURIComponent(videoId)}`;
   boundVideo = null;
 
@@ -804,15 +910,9 @@ function updateWidgetInfo(track: Track): void {
     title.textContent = track.title;
     title.setAttribute('href', videoUrl(track));
   }
+  // Sans lien de chaîne (collaboration), les liens arrivent avec la page de l'iframe
   if (artist) {
-    artist.textContent = track.artist;
-    if (track.channelUrl) {
-      artist.setAttribute('href', track.channelUrl);
-      artist.title = t('openChannel', track.artist);
-    } else {
-      artist.removeAttribute('href');
-      artist.removeAttribute('title');
-    }
+    renderArtists(artist, track.channelUrl ? [{ name: track.artist, url: track.channelUrl }] : [], track.artist);
   }
 }
 

@@ -189,7 +189,6 @@ function widget(track, { volumeOpen = false } = {}) {
       $('ytp-page-player').innerHTML = '<img src="${cover(track.index, 348, 196)}" style="width:100%;height:100%;object-fit:cover;display:block">';
       $('ytp-w-title').textContent = ${JSON.stringify(track.title)};
       $('ytp-w-artist').textContent = ${JSON.stringify(track.artist)};
-      $('ytp-w-artist').setAttribute('href', '#');
       w.querySelector('.ytp-icon-play').style.display = 'none';
       w.querySelector('.ytp-icon-pause').style.display = 'block';
       $('ytp-w-progress').style.setProperty('--progress', '38%');

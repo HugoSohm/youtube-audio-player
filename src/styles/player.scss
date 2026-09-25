@@ -328,11 +328,11 @@ $player-video-height: 196px;
   display: block;
   width: fit-content;
   max-width: 100%;
-  text-decoration: none;
 
-  // Lien vers la chaîne (onglet séparé)
-  &[href] {
-    cursor: pointer;
+  // Lien(s) vers la chaîne (onglet séparé), un par chaîne en collaboration
+  a {
+    color: inherit;
+    text-decoration: none;
 
     &:hover {
       color: $text-primary;
