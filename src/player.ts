@@ -86,6 +86,8 @@ let frame: HTMLIFrameElement | null = null;
 let documentListeners: AbortController | null = null;
 /** Piste pour laquelle la qualité souhaitée a déjà été appliquée */
 let qualityAppliedFor: string | null = null;
+/** Piste dont les chaînes en collaboration ont déjà été cherchées dans l'iframe */
+let collabCheckedFor: string | null = null;
 let boundVideo: HTMLVideoElement | null = null;
 let pollInterval: ReturnType<typeof setInterval> | null = null;
 /** Pendant un drag, la barre suit la souris et non la vidéo */
@@ -162,6 +164,109 @@ function tick(): void {
   }
 
   syncLikeFromFrame(doc, state.currentTrack.id);
+  syncCollabFromFrame(doc, state.currentTrack);
+}
+
+// ── Chaînes en collaboration ──────────────────────────────────
+// Dans la liste, une vidéo à plusieurs chaînes n'a aucun lien de chaîne
+// (YouTube ouvre une boîte de dialogue). La page /watch de l'iframe embarque
+// cette liste dans ytInitialData : on en tire un lien par chaîne.
+
+interface Channel {
+  name: string;
+  url: string;
+}
+
+function syncCollabFromFrame(doc: Document, track: Track): void {
+  if (track.channelUrl || collabCheckedFor === track.id) return;
+  // Pendant la navigation, l'iframe contient encore la page de la piste précédente
+  if (new URL(doc.URL).searchParams.get('v') !== track.id) return;
+
+  const data = readInitialData(doc);
+  if (!data) {
+    // Script pas encore analysé : on réessaie au prochain tick
+    if (doc.readyState === 'complete') collabCheckedFor = track.id;
+    return;
+  }
+  collabCheckedFor = track.id;
+
+  const channels = findCollaborators(data);
+  const artist = document.getElementById('ytp-w-artist');
+  if (channels.length && artist) renderArtists(artist, channels, track.artist);
+}
+
+function readInitialData(doc: Document): unknown {
+  const script = [...doc.scripts].find((s) => s.textContent?.includes('var ytInitialData'));
+  const text = script?.textContent ?? '';
+  try {
+    return JSON.parse(text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1));
+  } catch {
+    return null;
+  }
+}
+
+/** Premier objet (parcours en profondeur) qui possède la clé demandée */
+function findKey(node: unknown, key: string): unknown {
+  if (!node || typeof node !== 'object') return undefined;
+  if (key in node) return (node as Record<string, unknown>)[key];
+  for (const child of Object.values(node)) {
+    const found = findKey(child, key);
+    if (found !== undefined) return found;
+  }
+  return undefined;
+}
+
+/** Tous les objets (parcours en profondeur) qui possèdent la clé demandée */
+function findAllKeys(node: unknown, key: string, out: unknown[] = []): unknown[] {
+  if (!node || typeof node !== 'object') return out;
+  if (key in node) out.push((node as Record<string, unknown>)[key]);
+  for (const child of Object.values(node)) findAllKeys(child, key, out);
+  return out;
+}
+
+/** Collaborateurs listés dans la boîte de dialogue du propriétaire de la vidéo */
+function findCollaborators(data: unknown): Channel[] {
+  const owner = findKey((data as { contents?: unknown } | null)?.contents, 'videoOwnerRenderer');
+  const channels: Channel[] = [];
+
+  for (const item of findAllKeys(owner, 'listItemViewModel')) {
+    const name = (item as { title?: { content?: unknown } }).title?.content;
+    // Le titre pointe vers /channel/UC… et l'avatar vers /@handle : on préfère le handle
+    const paths = findAllKeys(item, 'canonicalBaseUrl').filter((p): p is string => typeof p === 'string');
+    const path = paths.find((p) => p.startsWith('/@')) ?? paths[0];
+    if (typeof name !== 'string' || !name || !path) continue;
+
+    const url = new URL(path, 'https://www.youtube.com').href;
+    if (!channels.some((c) => c.url === url)) channels.push({ name, url });
+  }
+
+  return channels;
+}
+
+/** Nom(s) de chaîne : un lien par chaîne (« A et B »), texte brut sans lien */
+function renderArtists(el: HTMLElement, channels: Channel[], fallback: string): void {
+  if (!channels.length) {
+    el.textContent = fallback;
+    return;
+  }
+
+  const links = channels.map((channel) => {
+    const a = document.createElement('a');
+    a.href = channel.url;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    a.title = t('openChannel', channel.name);
+    a.textContent = channel.name;
+    return a;
+  });
+
+  // Séparateurs dans la langue de YouTube (« A, B et C »)
+  const lang = document.documentElement.lang || undefined;
+  const parts = new Intl.ListFormat(lang, { type: 'conjunction' }).formatToParts(channels.map((c) => c.name));
+  let next = 0;
+  el.replaceChildren(
+    ...parts.map((part) => (part.type === 'element' ? links[next++] ?? part.value : part.value))
+  );
 }
 
 /**
@@ -247,9 +352,9 @@ function buildWidget(): HTMLElement {
     <div class="ytp-w-controls">
       <div class="ytp-w-head">
         <div class="ytp-w-meta">
-          <div class="ytp-w-title" id="ytp-w-title">${t('noTrack')}</div>
+          <a class="ytp-w-title" id="ytp-w-title" target="_blank" rel="noopener noreferrer">${t('noTrack')}</a>
           <div class="ytp-w-tooltip" id="ytp-w-tooltip" role="tooltip"></div>
-          <a class="ytp-w-artist" id="ytp-w-artist" target="_blank" rel="noopener noreferrer"></a>
+          <div class="ytp-w-artist" id="ytp-w-artist"></div>
         </div>
         <div class="ytp-w-actions">
           <div class="ytp-w-quality" id="ytp-w-quality">
@@ -257,31 +362,10 @@ function buildWidget(): HTMLElement {
                     aria-haspopup="menu" aria-expanded="false">Auto</button>
             <div class="ytp-w-quality__menu" id="ytp-w-quality-menu" role="menu"></div>
           </div>
-          <a class="ytp-w-btn ytp-w-btn--action" id="ytp-w-open-yt" href="https://www.youtube.com/"
-             target="_blank" rel="noopener noreferrer" title="${t('openVideo')}">
-            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <path d="M21.6 7.2a2.5 2.5 0 0 0-1.76-1.77C18.28 5 12 5 12 5s-6.28 0-7.84.43A2.5 2.5 0 0 0 2.4 7.2C2 8.77 2 12 2 12s0 3.23.4 4.8a2.5 2.5 0 0 0 1.76 1.77C5.72 19 12 19 12 19s6.28 0 7.84-.43a2.5 2.5 0 0 0 1.76-1.77C22 15.23 22 12 22 12s0-3.23-.4-4.8zM10 15V9l5.2 3z"/>
-            </svg>
-          </a>
-          <button class="ytp-w-btn ytp-w-btn--action ytp-w-btn--riptune" id="ytp-w-riptune" title="${t('riptuneSend')}">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <defs>
-                <linearGradient id="ytp-riptune-grad" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0%" stop-color="#a855f7"/><stop offset="100%" stop-color="#3b82f6"/>
-                </linearGradient>
-              </defs>
-              <g class="ytp-riptune-bars" fill="url(#ytp-riptune-grad)">
-                <rect x="2" y="10" width="2.6" height="4" rx="1.3"/>
-                <rect x="5.5" y="7.5" width="2.6" height="9" rx="1.3"/>
-                <rect x="9" y="4" width="2.6" height="16" rx="1.3"/>
-                <rect x="12.5" y="8" width="2.6" height="8" rx="1.3"/>
-                <rect x="16" y="5.5" width="2.6" height="13" rx="1.3"/>
-                <rect x="19.5" y="9.5" width="2.6" height="5" rx="1.3"/>
-              </g>
-              <path class="ytp-riptune-check" d="m5 12.5 4.5 4.5L19 7.5" fill="none" stroke="currentColor"
-                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-              <path class="ytp-riptune-fail" d="M7 7l10 10M17 7 7 17" fill="none" stroke="currentColor"
-                    stroke-width="2.5" stroke-linecap="round"/>
+          <button class="ytp-w-btn ytp-w-btn--action ytp-w-btn--copy" id="ytp-w-copy" title="${t('copyLink')}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <g class="ytp-copy-icon"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></g>
+              <path class="ytp-copy-check" d="m5 12.5 4.5 4.5L19 7.5" stroke-width="2.5"/>
             </svg>
           </button>
         </div>
@@ -395,12 +479,13 @@ function bindControls(): void {
   const volBar = document.getElementById('ytp-w-volume');
   if (vol && volBar) bindVolumeBar(vol, volBar);
 
-  // Ouvrir sur YouTube : on met le widget en pause pour éviter le double son
-  document.getElementById('ytp-w-open-yt')?.addEventListener('click', () => {
-    frameVideo()?.pause();
+  // Titre → vidéo sur YouTube : on met le widget en pause pour éviter le double son
+  document.getElementById('ytp-w-title')?.addEventListener('click', () => {
+    if (state.currentTrack) frameVideo()?.pause();
   });
 
-  document.getElementById('ytp-w-riptune')?.addEventListener('click', sendToRiptune);
+  document.getElementById('ytp-w-copy')?.addEventListener('click', copyVideoLink);
+
   document.getElementById('ytp-w-repeat')?.addEventListener('click', toggleRepeat);
 
   bindQualityMenu();
@@ -513,6 +598,35 @@ function updateQualityUi(): void {
   if (btn) btn.textContent = QUALITY_LABELS[state.quality];
 }
 
+// ── Copier le lien ────────────────────────────────────────────
+
+const videoUrl = (track: Track): string =>
+  `https://www.youtube.com/watch?v=${encodeURIComponent(track.id)}`;
+
+let copyResetTimer: ReturnType<typeof setTimeout> | null = null;
+
+/** Copie le lien de la vidéo en cours ; une coche confirme la copie */
+async function copyVideoLink(): Promise<void> {
+  const track = state.currentTrack;
+  const btn = document.getElementById('ytp-w-copy');
+  if (!track || !btn) return;
+
+  try {
+    await navigator.clipboard.writeText(videoUrl(track));
+  } catch (err) {
+    console.error('[YTP] Copie du lien', err);
+    return;
+  }
+
+  btn.classList.add('ytp-w-btn--copied');
+  btn.title = t('linkCopied');
+  if (copyResetTimer) clearTimeout(copyResetTimer);
+  copyResetTimer = setTimeout(() => {
+    btn.classList.remove('ytp-w-btn--copied');
+    btn.title = t('copyLink');
+  }, 1500);
+}
+
 // ── Tooltip du titre (uniquement s'il est tronqué) ────────────
 
 function bindTitleTooltip(): void {
@@ -581,41 +695,6 @@ function bindVolumeBar(container: HTMLElement, bar: HTMLElement): void {
     e.stopPropagation(); // ne pas déclencher le seek global de ← →
     setVolume(state.volume + step);
   });
-}
-
-// ── Riptune ───────────────────────────────────────────────────
-
-/**
- * Envoie la piste courante à l'app Riptune (via background.ts).
- * Si l'app n'est pas installée, background.ts ouvre riptune.app.
- * Le bouton reste en attente pendant le lancement éventuel de l'app.
- */
-async function sendToRiptune(): Promise<void> {
-  const track = state.currentTrack;
-  const btn = document.getElementById('ytp-w-riptune');
-  if (!track || !btn || btn.classList.contains('ytp-w-btn--busy')) return;
-
-  btn.classList.add('ytp-w-btn--busy');
-  try {
-    const response = await chrome.runtime.sendMessage({
-      type: 'RIPTUNE_DOWNLOAD',
-      url: `https://www.youtube.com/watch?v=${track.id}`,
-    }) as { success?: boolean; result?: 'app' | 'website' } | undefined;
-
-    const sent = response?.success && response.result === 'app';
-    btn.classList.add(sent ? 'ytp-w-btn--sent' : 'ytp-w-btn--failed');
-    btn.title = t(sent ? 'riptuneSent' : response?.result === 'website' ? 'riptuneNotInstalled' : 'riptuneError');
-  } catch (err) {
-    console.error('[YTP] Riptune', err);
-    btn.classList.add('ytp-w-btn--failed');
-    btn.title = t('riptuneError');
-  } finally {
-    btn.classList.remove('ytp-w-btn--busy');
-    setTimeout(() => {
-      btn.classList.remove('ytp-w-btn--sent', 'ytp-w-btn--failed');
-      btn.title = t('riptuneSend');
-    }, 2000);
-  }
 }
 
 /**
@@ -691,6 +770,7 @@ export function playTrack(track: Track): void {
 
 function loadInFrame(videoId: string): void {
   qualityAppliedFor = null;
+  collabCheckedFor = null;
   const url = `https://www.youtube.com/watch?v=${encodeURIComponent(videoId)}`;
   boundVideo = null;
 
@@ -826,19 +906,14 @@ function showWidget(): void {
 function updateWidgetInfo(track: Track): void {
   const title = document.getElementById('ytp-w-title');
   const artist = document.getElementById('ytp-w-artist');
-  if (title) title.textContent = track.title;
-  if (artist) {
-    artist.textContent = track.artist;
-    if (track.channelUrl) {
-      artist.setAttribute('href', track.channelUrl);
-      artist.title = t('openChannel', track.artist);
-    } else {
-      artist.removeAttribute('href');
-      artist.removeAttribute('title');
-    }
+  if (title) {
+    title.textContent = track.title;
+    title.setAttribute('href', videoUrl(track));
   }
-  const ytLink = document.getElementById('ytp-w-open-yt') as HTMLAnchorElement | null;
-  if (ytLink) ytLink.href = `https://www.youtube.com/watch?v=${encodeURIComponent(track.id)}`;
+  // Sans lien de chaîne (collaboration), les liens arrivent avec la page de l'iframe
+  if (artist) {
+    renderArtists(artist, track.channelUrl ? [{ name: track.artist, url: track.channelUrl }] : [], track.artist);
+  }
 }
 
 function setPlayIcon(playing: boolean): void {

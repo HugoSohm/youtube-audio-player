@@ -85,8 +85,11 @@
   "qualityAuto": {
     "message": "Auto"
   },
-  "openVideo": {
-    "message": "Ouvrir la vidéo sur YouTube"
+  "copyLink": {
+    "message": "Copier le lien de la vidéo"
+  },
+  "linkCopied": {
+    "message": "Lien copié"
   },
   "openChannel": {
     "message": "Ouvrir la chaîne $arg1$",
@@ -95,18 +98,6 @@
         "content": "$1"
       }
     }
-  },
-  "riptuneSend": {
-    "message": "Télécharger et analyser avec Riptune"
-  },
-  "riptuneSent": {
-    "message": "Envoyé à Riptune"
-  },
-  "riptuneNotInstalled": {
-    "message": "Riptune n'est pas installé : ouverture de riptune.app"
-  },
-  "riptuneError": {
-    "message": "Riptune introuvable"
   },
   "repeatOn": {
     "message": "Répéter la piste (R)"

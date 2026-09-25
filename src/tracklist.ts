@@ -166,7 +166,6 @@ function buildRow(track: Track): HTMLElement {
   );
 
   if (watched) row.classList.add('ytp-tl-row--watched');
-  if (fullyWatched) row.classList.add('ytp-tl-row--seen');
 
   // Les titres viennent de YouTube : échappés avant injection HTML
   const safe = {

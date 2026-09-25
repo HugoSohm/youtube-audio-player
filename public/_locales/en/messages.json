@@ -85,8 +85,11 @@
   "qualityAuto": {
     "message": "Auto"
   },
-  "openVideo": {
-    "message": "Open the video on YouTube"
+  "copyLink": {
+    "message": "Copy the video link"
+  },
+  "linkCopied": {
+    "message": "Link copied"
   },
   "openChannel": {
     "message": "Open the $arg1$ channel",
@@ -95,18 +98,6 @@
         "content": "$1"
       }
     }
-  },
-  "riptuneSend": {
-    "message": "Download and analyze with Riptune"
-  },
-  "riptuneSent": {
-    "message": "Sent to Riptune"
-  },
-  "riptuneNotInstalled": {
-    "message": "Riptune is not installed: opening riptune.app"
-  },
-  "riptuneError": {
-    "message": "Riptune not found"
   },
   "repeatOn": {
     "message": "Repeat track (R)"

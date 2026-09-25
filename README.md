@@ -21,11 +21,10 @@
 - 🎧 **Tracklist view** — title, artist, duration, one line per track, with an animated waveform on the playing track
 - 🔎 **Works everywhere you dig** — search results, channel *Videos* tab, playlists, Liked videos and Watch Later
 - ♾️ **Infinite scroll** — powered by YouTube's own pagination
-- ▶️ **Floating player** — play/pause, previous/next, draggable progress bar, ±10 s, repeat, vertical volume, video quality, auto-next
+- ▶️ **Floating player** — play/pause, previous/next, draggable progress bar, ±10 s, repeat, vertical volume, video quality, auto-next, copy the video link
 - 🎬 **Clean video** — the YouTube overlay is hidden, but the video and ads stay visible (skip button included)
 - 🔀 **One-click toggle** — a *List mode* switch in the YouTube top bar (or the extension icon), synced across tabs
 - ⌨️ **Keyboard shortcuts** — see below
-- 🎚️ **[Riptune](https://riptune.app) integration** — send a track to the Riptune desktop app to download and analyze it (BPM, key)
 - 🌍 **Localized** in English, French and Spanish
 - 🔒 **Private** — no account, no analytics, no data leaves your browser ([privacy policy](PRIVACY.md))
 
@@ -72,6 +71,7 @@ Then in Chrome:
 | `npm run typecheck` | Type-check the project with TypeScript |
 | `npm run package` | Production build without source maps + `release/youtube-audio-player-v<version>.zip` for the Chrome Web Store |
 | `npm run store-assets` | Regenerate the icons and the Chrome Web Store visuals (requires Chrome installed) |
+| `npm run promo-gif` | Render the animated promo GIF (`store-assets/out/promo-en.gif`, requires Chrome installed) |
 
 ### Project structure
 
@@ -84,7 +84,7 @@ src/
 ├── player.ts            Floating player (hidden /watch iframe driven through its <video> element)
 ├── toggle.ts            "List mode" switch in the YouTube top bar
 ├── keyboard.ts          Keyboard shortcuts
-├── background.ts        Service worker: toolbar toggle, Riptune bridge, video quality
+├── background.ts        Service worker: toolbar toggle, video quality
 ├── i18n.ts              chrome.i18n helper
 ├── types.ts             Shared types
 └── styles/              SCSS
@@ -100,7 +100,6 @@ store-assets/            Logo, store visuals generator, store descriptions
 - **Tracklist** — the extension hides YouTube's native video grid with CSS and renders its own list in its place. YouTube's *continuation* element is kept right below the list, so native infinite scroll keeps working.
 - **Player** — YouTube refuses embeds on youtube.com itself (errors 152/153) and doesn't load its IFrame API there, so the player is a same-origin `/watch` iframe. The extension injects CSS to show only the video (and ads) and controls the native `<video>` element directly.
 - **Video quality** — the YouTube player API only exists in the page's main world, so the service worker calls it with `chrome.scripting.executeScript` in the player frame.
-- **Riptune** — the track URL is sent to the local Riptune app (`http://127.0.0.1:4774`), falling back to the `riptune://` deep link, then to [riptune.app](https://riptune.app) if the app isn't installed.
 
 YouTube changes its markup regularly: most breakages come from selectors in [`src/extractor.ts`](src/extractor.ts) and [`src/styles/tracklist.scss`](src/styles/tracklist.scss).
 

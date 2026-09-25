@@ -157,7 +157,7 @@ $player-video-height: 196px;
   gap: 8px;
 }
 
-// ── Titre + actions (YouTube / Riptune) ──────────────────────
+// ── Titre + actions (YouTube) ──────────────────────
 .ytp-w-head {
   display: flex;
   align-items: center;
@@ -302,6 +302,7 @@ $player-video-height: 196px;
 }
 
 .ytp-w-title {
+  display: block;
   font-size: 13px;
   font-weight: 500;
   color: $text-primary;
@@ -309,6 +310,12 @@ $player-video-height: 196px;
   overflow: hidden;
   text-overflow: ellipsis;
   line-height: 1.3;
+  text-decoration: none;
+
+  // Lien vers la vidéo (onglet séparé)
+  &[href]:hover {
+    text-decoration: underline;
+  }
 }
 
 .ytp-w-artist {
@@ -321,11 +328,11 @@ $player-video-height: 196px;
   display: block;
   width: fit-content;
   max-width: 100%;
-  text-decoration: none;
 
-  // Lien vers la chaîne (onglet séparé)
-  &[href] {
-    cursor: pointer;
+  // Lien(s) vers la chaîne (onglet séparé), un par chaîne en collaboration
+  a {
+    color: inherit;
+    text-decoration: none;
 
     &:hover {
       color: $text-primary;
@@ -428,24 +435,14 @@ $player-video-height: 196px;
     }
   }
 
-  // Riptune : logo en dégradé, coche verte / rouge après envoi
-  &--riptune {
-    .ytp-riptune-check,
-    .ytp-riptune-fail { display: none; }
+  // Copier le lien : une coche remplace l'icône après la copie
+  &--copy {
+    .ytp-copy-check { display: none; }
 
-    &.ytp-w-btn--busy { opacity: 0.5; pointer-events: none; }
-
-    &.ytp-w-btn--sent,
-    &.ytp-w-btn--failed {
-      .ytp-riptune-bars { display: none; }
-    }
-    &.ytp-w-btn--sent {
+    &.ytp-w-btn--copied {
       color: $accent;
-      .ytp-riptune-check { display: inline; }
-    }
-    &.ytp-w-btn--failed {
-      color: #f15e6c;
-      .ytp-riptune-fail { display: inline; }
+      .ytp-copy-icon { display: none; }
+      .ytp-copy-check { display: inline; }
     }
   }
 
