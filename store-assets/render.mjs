@@ -273,6 +273,22 @@ const BASE_CSS = `
 
   /* Le widget est "fixed" dans l'extension : ici relatif à la fausse page */
   .browser__page #ytp-player-widget { position: absolute; }
+
+  /* Les colonnes de la tracklist suivent la largeur de la fenêtre (@media de
+     tracklist.scss) : on rejoue ces paliers sur la largeur de la fausse fenêtre */
+  .browser__page { container-type: inline-size; }
+  @container (max-width: 1100px) {
+    .ytp-tl-thead, .ytp-tl-row { grid-template-columns: 52px minmax(0, 1fr) minmax(0, 116px) 60px 108px; }
+    .ytp-tl-cell--info, .ytp-tl-th--info { display: none; }
+  }
+  @container (max-width: 860px) {
+    .ytp-tl-thead, .ytp-tl-row { grid-template-columns: 44px minmax(0, 1fr) 60px 108px; }
+    .ytp-tl-cell--published, .ytp-tl-th--published { display: none; }
+  }
+  @container (max-width: 620px) {
+    .ytp-tl-thead, .ytp-tl-row { grid-template-columns: 40px minmax(0, 1fr) 60px; }
+    .ytp-tl-cell--actions, .ytp-tl-th--actions { display: none; }
+  }
 `;
 
 // ── Textes marketing des visuels ──────────────────────────────
