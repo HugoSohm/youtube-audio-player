@@ -24,6 +24,11 @@ const SEL_VIDEO_LINK = 'a#video-title, a#video-title-link, a.ytLockupMetadataVie
 const SEL_DURATION = 'span.ytd-thumbnail-overlay-time-status-renderer, ytd-thumbnail-overlay-time-status-renderer span[aria-label], .ytBadgeShapeText';
 /** Nom de la chaîne */
 const SEL_CHANNEL = 'ytd-channel-name a, .ytd-channel-name a, a.ytAttributedStringLink[href^="/@"], a.ytAttributedStringLink[href^="/channel/"]';
+/**
+ * Pile d'avatars d'une vidéo en collaboration (nouvelle interface) : les
+ * chaînes y sont en texte brut, sans lien
+ */
+const SEL_COLLAB_AVATARS = 'yt-avatar-stack-view-model';
 /** Miniature */
 const SEL_THUMBNAIL = 'img.yt-core-image, img#img';
 /**
@@ -117,17 +122,33 @@ function extractPublished(el: Element, artist: string): string | null {
   const rows = [...el.querySelectorAll(SEL_META_ROW)].reverse();
 
   for (const row of rows) {
-    // Seules les feuilles : un <span> parent répéterait le texte de ses enfants
-    const items = [...row.querySelectorAll('span')]
-      .filter((span) => !span.querySelector('span'))
-      .map((span) => (span.textContent ?? '').replace(/\u00a0/g, ' ').trim())
-      .filter((text) => text && text !== '•' && text !== artist);
+    const items = rowTexts(row).filter((text) => text !== artist);
 
     const last = items[items.length - 1];
     if (items.length >= 2 && last) return last;
   }
 
   return null;
+}
+
+/** Textes d'une ligne de métadonnées, sans les séparateurs */
+function rowTexts(row: Element): string[] {
+  // Seules les feuilles : un <span> parent répéterait le texte de ses enfants
+  return [...row.querySelectorAll('span')]
+    .filter((span) => !span.querySelector('span'))
+    .map((span) => (span.textContent ?? '').replace(/\u00a0/g, ' ').trim())
+    .filter((text) => text && text !== '•');
+}
+
+/**
+ * Chaînes d'une vidéo en collaboration, telles qu'affichées par YouTube
+ * (« PALWOL et Nobodylikesbirdie », « B0YG1RL et 2 autre(s) ») : première
+ * ligne de métadonnées. null si la vidéo n'est pas une collaboration.
+ */
+function extractCollabArtists(el: Element): string | null {
+  if (!el.querySelector(SEL_COLLAB_AVATARS)) return null;
+  const row = el.querySelector(SEL_META_ROW);
+  return row ? rowTexts(row).join(' ') || null : null;
 }
 
 /**
@@ -166,10 +187,12 @@ function extractFromRenderer(el: Element, index: number, isPlaylistPage: boolean
   const title = (linkEl.getAttribute('title') ?? linkEl.textContent ?? '').trim();
   if (!title) return null;
 
-  // 2. Chaîne — absente des vignettes sur une page chaîne : on prend alors la chaîne de la page
+  // 2. Chaîne — absente des vignettes sur une page chaîne : on prend alors la chaîne de la page.
+  //    Une collaboration n'a pas de lien de chaîne : on garde le texte affiché par YouTube.
   const channelEl = el.querySelector<HTMLAnchorElement>(SEL_CHANNEL);
-  const pageChannel = channelEl ? null : currentPageChannel();
-  const artist = (channelEl?.textContent ?? pageChannel?.name ?? 'Unknown').trim();
+  const collabArtists = channelEl ? null : extractCollabArtists(el);
+  const pageChannel = channelEl || collabArtists ? null : currentPageChannel();
+  const artist = (channelEl?.textContent ?? collabArtists ?? pageChannel?.name ?? 'Unknown').trim();
   const channelHref = channelEl?.getAttribute('href');
   const channelUrl = channelHref
     ? new URL(channelHref, 'https://www.youtube.com').href
