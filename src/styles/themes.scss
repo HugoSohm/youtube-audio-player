@@ -1,0 +1,176 @@
+// ============================================================
+// styles/themes.scss — Thèmes du lecteur flottant
+// ============================================================
+// Le thème "Sombre" est défini par les variables de player.scss.
+// Chaque thème surcharge ces variables via [data-theme] sur le
+// widget (voir themes.ts) et peut ajouter ses propres règles.
+// Les thèmes ne touchent pas à l'interface de YouTube.
+// ============================================================
+
+// ── Clair ─────────────────────────────────────────────────────
+#ytp-player-widget[data-theme='light'] {
+  --ytp-bg: #ffffff;
+  --ytp-border: rgba(0, 0, 0, 0.1);
+  --ytp-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+  --ytp-text: #0f0f0f;
+  --ytp-text-2: #555555;
+  --ytp-text-3: #7a7a7a;
+  --ytp-accent: #16a34a;
+  --ytp-accent-soft: rgba(22, 163, 74, 0.45);
+  --ytp-accent-bg: rgba(22, 163, 74, 0.1);
+  --ytp-hover: rgba(0, 0, 0, 0.06);
+  --ytp-chip-bg: rgba(0, 0, 0, 0.04);
+  --ytp-chip-border: rgba(0, 0, 0, 0.12);
+  --ytp-chip-border-hover: rgba(0, 0, 0, 0.3);
+  --ytp-popover-bg: #ffffff;
+  --ytp-popover-border: rgba(0, 0, 0, 0.1);
+  --ytp-popover-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+  --ytp-track: rgba(0, 0, 0, 0.12);
+  --ytp-fill: #0f0f0f;
+  --ytp-thumb: #0f0f0f;
+  --ytp-play-bg: #0f0f0f;
+  --ytp-play-fg: #ffffff;
+}
+
+// ── iTunes (milieu des années 2000) ───────────────────────────
+// Métal brossé, écran LCD crème au centre, boutons ronds bombés,
+// accent bleu Aqua.
+$itunes-lcd-text: #1f2418;
+
+#ytp-player-widget[data-theme='itunes'] {
+  --ytp-bg: linear-gradient(180deg, #ececec 0%, #d2d2d2 55%, #bcbcbc 100%);
+  --ytp-border: #6f6f6f;
+  --ytp-radius: 8px;
+  --ytp-shadow: 0 10px 30px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  --ytp-font: 'Lucida Grande', 'Lucida Sans Unicode', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --ytp-text: #{$itunes-lcd-text};
+  --ytp-text-2: #3a3a3a;
+  --ytp-text-3: #4f5543;
+  --ytp-accent: #2f6fd6;
+  --ytp-accent-soft: rgba(47, 111, 214, 0.5);
+  --ytp-accent-bg: rgba(47, 111, 214, 0.12);
+  --ytp-hover: rgba(0, 0, 0, 0.08);
+  --ytp-chip-bg: rgba(255, 255, 255, 0.5);
+  --ytp-chip-border: #8e9480;
+  --ytp-chip-border-hover: #50553f;
+  --ytp-popover-bg: #f2f2f2;
+  --ytp-popover-border: #8a8a8a;
+  --ytp-popover-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  --ytp-track: #fdfdf5;
+  --ytp-fill: #5a6048;
+  --ytp-thumb: #1c1c1c;
+  --ytp-play-bg: linear-gradient(180deg, #ffffff 0%, #d9d9d9 50%, #c4c4c4 51%, #e6e6e6 100%);
+  --ytp-play-fg: #2a2a2a;
+
+  .ytp-w-controls {
+    padding-top: 12px;
+  }
+
+  // Écran LCD : titre, artiste, qualité, copier, puis la progression
+  .ytp-w-head {
+    padding: 6px 8px 6px 10px;
+    background: linear-gradient(180deg, #f6f8e8 0%, #e3e8cc 100%);
+    border: 1px solid #7c8070;
+    border-radius: 6px;
+    box-shadow:
+      inset 0 1px 3px rgba(0, 0, 0, 0.3),
+      0 1px 0 rgba(255, 255, 255, 0.7);
+  }
+
+  .ytp-w-title,
+  .ytp-w-artist {
+    text-align: center;
+  }
+
+  .ytp-w-title {
+    font-weight: 700;
+    font-size: 12px;
+  }
+
+  .ytp-w-artist {
+    margin-inline: auto;
+  }
+
+  .ytp-w-btn--action {
+    color: #3f4533;
+  }
+
+  .ytp-w-buttons {
+    gap: 7px;
+  }
+
+  // Boutons ronds bombés (précédent, -10 s, lecture, +10 s, suivant)
+  .ytp-w-buttons > .ytp-w-btn:not(.ytp-w-btn--repeat) {
+    padding: 5px;
+
+    color: #2a2a2a;
+    background: linear-gradient(180deg, #ffffff 0%, #e4e4e4 50%, #cdcdcd 51%, #ececec 100%);
+    border: 1px solid #6e6e6e;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.9),
+      0 1px 2px rgba(0, 0, 0, 0.25);
+
+    &:hover {
+      color: #000;
+      background: linear-gradient(180deg, #f4f4f4 0%, #d6d6d6 50%, #bdbdbd 51%, #e0e0e0 100%);
+    }
+
+    &:active {
+      background: linear-gradient(180deg, #bcbcbc 0%, #d8d8d8 100%);
+      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+    }
+  }
+
+  .ytp-w-btn--play {
+    width: 40px;
+    height: 40px;
+
+    &:hover {
+      color: #000;
+    }
+  }
+
+  .ytp-w-btn--repeat,
+  .ytp-w-btn--volume {
+    color: #3a3a3a;
+  }
+
+  // Piste de progression façon LCD, curseur en losange
+  .ytp-w-progress__track {
+    height: 7px;
+    border: 1px solid #6f7462;
+    border-radius: 2px;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.25);
+
+    .ytp-w-progress:hover &,
+    .ytp-w-progress--dragging & {
+      height: 9px;
+    }
+  }
+
+  .ytp-w-progress__fill {
+    border-radius: 0;
+
+    .ytp-w-progress:hover &,
+    .ytp-w-progress--dragging & {
+      background: var(--ytp-fill);
+    }
+  }
+
+  .ytp-w-progress__thumb {
+    width: 9px;
+    height: 9px;
+    border-radius: 1px;
+    box-shadow: none;
+    transform: translate(-50%, -50%) rotate(45deg) scale(1);
+  }
+
+  .ytp-w-vol__track {
+    border: 1px solid #6f7462;
+  }
+
+  .ytp-w-times {
+    color: #3a3a3a;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.6);
+  }
+}

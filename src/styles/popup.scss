@@ -1,0 +1,270 @@
+// ============================================================
+// styles/popup.scss — Popup de l'extension
+// ============================================================
+
+@use './variables' as *;
+
+* { box-sizing: border-box; }
+
+body {
+  width: 320px;
+  margin: 0;
+  padding: 14px;
+  font-family: $font-family;
+  font-size: 13px;
+  color: $text-primary;
+  background: $bg-surface;
+}
+
+h1, h2, p { margin: 0; }
+
+// ── En-tête ───────────────────────────────────────────────────
+.pp-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+
+  h1 {
+    font-size: 15px;
+    font-weight: 600;
+  }
+}
+
+// ── Mode liste ────────────────────────────────────────────────
+.pp-switch {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  background: $bg-elevated;
+  border: 1px solid $border;
+  border-radius: $radius-md;
+  cursor: pointer;
+  transition: background $transition-fast;
+
+  &:hover { background: $bg-hover; }
+
+  &:focus-visible {
+    outline: 2px solid $accent;
+    outline-offset: 2px;
+  }
+}
+
+.pp-switch__text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pp-switch__label { font-weight: 600; }
+
+.pp-switch__hint,
+.pp-hint {
+  font-size: $font-xs;
+  color: $text-secondary;
+  line-height: 1.4;
+}
+
+.pp-switch__track {
+  position: relative;
+  flex-shrink: 0;
+  width: 34px;
+  height: 20px;
+  background: $text-muted;
+  border-radius: $radius-full;
+  transition: background $transition-base;
+
+  .pp-switch[aria-checked='true'] & { background: $accent; }
+}
+
+.pp-switch__knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform $transition-base;
+
+  .pp-switch[aria-checked='true'] & { transform: translateX(14px); }
+}
+
+// ── Thèmes ────────────────────────────────────────────────────
+.pp-section {
+  margin-top: 16px;
+
+  h2 {
+    font-size: $font-sm;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: $text-secondary;
+  }
+
+  .pp-hint { margin-top: 2px; }
+}
+
+.pp-themes {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.pp-theme {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 6px 8px;
+  font: inherit;
+  color: $text-secondary;
+  background: $bg-elevated;
+  border: 2px solid transparent;
+  border-radius: $radius-md;
+  cursor: pointer;
+  transition: border-color $transition-fast, color $transition-fast;
+
+  &:hover { color: $text-primary; border-color: $border-strong; }
+
+  &[aria-checked='true'] {
+    color: $text-primary;
+    border-color: $accent;
+  }
+
+  &:focus-visible {
+    outline: 2px solid $accent;
+    outline-offset: 2px;
+  }
+}
+
+.pp-theme__name {
+  font-size: $font-xs;
+  font-weight: 600;
+  text-align: center;
+}
+
+// ── Aperçus (lecteur miniature) ───────────────────────────────
+.pp-preview {
+  --pv-bg: #1a1a1a;
+  --pv-border: rgba(255, 255, 255, 0.1);
+  --pv-text: #fff;
+  --pv-muted: #6a6a6a;
+  --pv-btn: #b3b3b3;
+  --pv-play: #fff;
+  --pv-track: rgba(255, 255, 255, 0.15);
+  --pv-fill: #fff;
+
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-bottom: 5px;
+  overflow: hidden;
+  background: var(--pv-bg);
+  border: 1px solid var(--pv-border);
+  border-radius: 6px;
+}
+
+.pp-preview__video {
+  height: 30px;
+  background: linear-gradient(135deg, #2b2b2b, #0b0b0b);
+}
+
+.pp-preview__lcd {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0 5px;
+
+  span {
+    height: 3px;
+    width: 70%;
+    background: var(--pv-text);
+    border-radius: 2px;
+  }
+
+  span + span {
+    width: 40%;
+    background: var(--pv-muted);
+  }
+}
+
+.pp-preview__buttons {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+
+  i {
+    width: 5px;
+    height: 5px;
+    background: var(--pv-btn);
+    border-radius: 50%;
+  }
+}
+
+.pp-preview__play {
+  width: 9px !important;
+  height: 9px !important;
+  background: var(--pv-play) !important;
+}
+
+.pp-preview__bar {
+  height: 3px;
+  margin: 0 5px;
+  background: var(--pv-track);
+  border-radius: 2px;
+  overflow: hidden;
+
+  span {
+    display: block;
+    width: 45%;
+    height: 100%;
+    background: var(--pv-fill);
+  }
+}
+
+.pp-preview--light {
+  --pv-bg: #fff;
+  --pv-border: rgba(0, 0, 0, 0.12);
+  --pv-text: #0f0f0f;
+  --pv-muted: #9a9a9a;
+  --pv-btn: #555;
+  --pv-play: #0f0f0f;
+  --pv-track: rgba(0, 0, 0, 0.12);
+  --pv-fill: #0f0f0f;
+}
+
+.pp-preview--itunes {
+  --pv-bg: linear-gradient(180deg, #ececec, #bcbcbc);
+  --pv-border: #6f6f6f;
+  --pv-text: #1f2418;
+  --pv-muted: #6b715c;
+  --pv-btn: linear-gradient(180deg, #fff, #c4c4c4);
+  --pv-play: linear-gradient(180deg, #fff, #c4c4c4);
+  --pv-track: #fdfdf5;
+  --pv-fill: #5a6048;
+
+  .pp-preview__lcd {
+    padding: 3px 4px;
+    align-items: center;
+    background: linear-gradient(180deg, #f6f8e8, #e3e8cc);
+    border: 1px solid #7c8070;
+    border-radius: 3px;
+  }
+
+  .pp-preview__buttons i { box-shadow: 0 0 0 1px #6e6e6e; }
+
+  .pp-preview__bar {
+    border: 1px solid #6f7462;
+    border-radius: 1px;
+  }
+}

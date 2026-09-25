@@ -6,7 +6,7 @@
     "message": "Parcourez musiques et type beats plus facilement sur YouTube : tracklist compacte et lecteur flottant, sans quitter la page."
   },
   "actionTitle": {
-    "message": "Activer / désactiver le Mode liste"
+    "message": "YouTube Audio Player — Mode liste et thème"
   },
   "toggleTitle": {
     "message": "Activer / désactiver la tracklist (YouTube Audio Player)"
@@ -190,5 +190,23 @@
         "content": "$1"
       }
     }
+  },
+  "popupListModeHint": {
+    "message": "Affiche les résultats YouTube en tracklist compacte"
+  },
+  "themeTitle": {
+    "message": "Thème du lecteur"
+  },
+  "themeHint": {
+    "message": "S'applique uniquement au lecteur flottant"
+  },
+  "themeDark": {
+    "message": "Sombre"
+  },
+  "themeLight": {
+    "message": "Clair"
+  },
+  "themeItunes": {
+    "message": "iTunes 2000s"
   }
 }

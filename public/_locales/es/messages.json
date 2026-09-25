@@ -6,7 +6,7 @@
     "message": "Explora música y type beats más fácilmente en YouTube: lista de pistas compacta y reproductor flotante, sin salir de la página."
   },
   "actionTitle": {
-    "message": "Activar / desactivar el modo lista"
+    "message": "YouTube Audio Player — Modo lista y tema"
   },
   "toggleTitle": {
     "message": "Activar / desactivar la lista de pistas (YouTube Audio Player)"
@@ -190,5 +190,23 @@
         "content": "$1"
       }
     }
+  },
+  "popupListModeHint": {
+    "message": "Muestra los resultados de YouTube como una lista compacta"
+  },
+  "themeTitle": {
+    "message": "Tema del reproductor"
+  },
+  "themeHint": {
+    "message": "Solo se aplica al reproductor flotante"
+  },
+  "themeDark": {
+    "message": "Oscuro"
+  },
+  "themeLight": {
+    "message": "Claro"
+  },
+  "themeItunes": {
+    "message": "iTunes 2000s"
   }
 }
