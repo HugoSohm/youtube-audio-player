@@ -71,6 +71,7 @@ Then in Chrome:
 | `npm run typecheck` | Type-check the project with TypeScript |
 | `npm run package` | Production build without source maps + `release/youtube-audio-player-v<version>.zip` for the Chrome Web Store |
 | `npm run store-assets` | Regenerate the icons and the Chrome Web Store visuals (requires Chrome installed) |
+| `npm run promo-gif` | Render the animated promo GIF (`store-assets/out/promo-en.gif`, requires Chrome installed) |
 
 ### Project structure
 

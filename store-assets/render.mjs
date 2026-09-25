@@ -2,18 +2,20 @@
 // ============================================================
 // store-assets/render.mjs — Logo + visuels Chrome Web Store
 // ============================================================
-// Usage :  npm run build && node store-assets/render.mjs [--icons] [--lang=fr|en|es]
+// Usage :  npm run build && node store-assets/render.mjs [--icons] [--lang=fr|en|es] [--gif]
 //          (sans --lang : les 3 langues)
 //          (--icons : uniquement le logo et les icônes)
+//          (--gif : uniquement le GIF promotionnel, nécessite gifenc + pngjs)
 //
-// Génère avec Chrome headless (aucune dépendance) :
+// Génère avec Chrome headless :
 //   public/icons/icon{16,48,128}.png     icônes de l'extension
-//   store-assets/out/store-icon-128.png  icône de la fiche (96px + marge 16px)
+//   store-assets/out/store-icon-128.png  icône de la fiche (plein cadre)
 //   store-assets/out/<lang>/screenshot-*.png         captures 1280×800
 //   store-assets/out/<lang>/promo-small-440x280.png
 //   store-assets/out/<lang>/promo-marquee-1400x560.png
 //   store-assets/out/kofi-cover-1200x400.png         cover Ko-fi (sans --lang)
 //   store-assets/out/kofi-avatar-1024.png            avatar Ko-fi, fond plein cadre (sans --lang)
+//   store-assets/out/promo-en.gif                    GIF promotionnel (--gif uniquement)
 //
 // Les maquettes réutilisent les vrais templates HTML (player.ts,
 // tracklist.ts, toggle.ts) et le CSS compilé de dist/ : relancer le
@@ -88,6 +90,9 @@ const LANG_ARG = process.argv.find((a) => a.startsWith('--lang='))?.slice(7);
 /** Langue en cours de rendu */
 let CURRENT_LANG = 'en';
 if (LANG_ARG && !LANGS.includes(LANG_ARG)) throw new Error(`Langue inconnue : ${LANG_ARG}`);
+
+/** Format du GIF promotionnel (--gif) */
+const GIF = { width: 960, height: 600, fps: 20, duration: 9.8 };
 
 /** Textes de l'interface (public/_locales) pour la langue en cours de rendu */
 let MESSAGES = {};
@@ -368,6 +373,13 @@ const features = (items) => `<ul class="features">${items.map((f) => `<li>${f}</
 fs.mkdirSync(OUT, { recursive: true });
 fs.mkdirSync(BUILD, { recursive: true });
 
+// GIF promotionnel : rendu séparé (plus long), uniquement avec --gif
+if (process.argv.includes('--gif')) {
+  await renderPromoGif();
+  fs.rmSync(BUILD, { recursive: true, force: true });
+  process.exit(0);
+}
+
 // Icônes de l'extension (fond transparent)
 for (const size of [16, 48, 128]) {
   shot(`icon${size}`, `<!doctype html><body style="margin:0;background:transparent">
@@ -375,9 +387,10 @@ for (const size of [16, 48, 128]) {
     size, size, path.join(ICONS, `icon${size}.png`), { transparent: true });
 }
 
-// Icône de la fiche : 96×96 + 16px de marge transparente (recommandation du Web Store)
-shot('store-icon', `<!doctype html><body style="margin:0;background:transparent;padding:16px">
-  <img src="${LOGO_URI}" width="96" height="96" style="display:block"></body>`,
+// Icône de la fiche : plein cadre comme l'icône 128 de l'extension (une marge de
+// 16px la ferait paraître plus petite que les autres icônes du tableau de bord)
+shot('store-icon', `<!doctype html><body style="margin:0;background:transparent">
+  <img src="${LOGO_URI}" width="128" height="128" style="display:block"></body>`,
   128, 128, path.join(OUT, 'store-icon-128.png'), { transparent: true });
 
 if (process.argv.includes('--icons')) {
@@ -556,4 +569,340 @@ function renderLocale(lang) {
     <div class="stage">${browserWindow(`${tracklist(TRACKS.slice(2, 9), 3)}${widget(TRACKS[3])}`, { width: 760, height: 540 })}</div>
   </div>`),
   1400, 560, path.join(dir, 'promo-marquee-1400x560.png'));
+}
+
+// ── GIF promotionnel ──────────────────────────────────────────
+// Usage : node store-assets/render.mjs --gif
+// Scène animée pilotée par une fonction setTime(t) dans la page, capturée
+// image par image via le protocole DevTools de Chrome (headless), puis
+// encodée en GIF (gifenc + pngjs).
+
+async function renderPromoGif() {
+  // Paquets CommonJS : leurs exports sont sous default en import ESM
+  const gifenc = await import('gifenc');
+  const { GIFEncoder, quantize, applyPalette } = gifenc.default ?? gifenc;
+  const { PNG } = (await import('pngjs')).default;
+
+  MESSAGES = JSON.parse(read('public/_locales/en/messages.json'));
+  const htmlFile = path.join(BUILD, 'promo-gif.html');
+  fs.writeFileSync(htmlFile, promoGifHtml());
+
+  const frames = await captureFrames(htmlFile);
+
+  // Debug : GIF_FRAMES_DIR=<dossier> exporte une image par seconde en PNG
+  if (process.env.GIF_FRAMES_DIR) {
+    fs.mkdirSync(process.env.GIF_FRAMES_DIR, { recursive: true });
+    frames.forEach((f, i) => {
+      if (i % GIF.fps === 0) fs.writeFileSync(path.join(process.env.GIF_FRAMES_DIR, `t${i / GIF.fps}.png`), f);
+    });
+  }
+
+  // Palette commune (échantillon de quelques images) : évite le scintillement.
+  // Le dernier index est réservé à la transparence.
+  const size = GIF.width * GIF.height * 4;
+  const sample = frames.filter((_, i) => i % Math.ceil(frames.length / 8) === 0);
+  const sampleData = new Uint8Array(sample.length * size);
+  sample.forEach((f, i) => sampleData.set(PNG.sync.read(f).data, i * size));
+  const palette = quantize(sampleData, 255);
+  const transparentIndex = palette.length;
+  palette.push([255, 0, 255]);
+
+  // Chaque image ne contient que les pixels qui changent : le reste est
+  // transparent et laisse voir l'image précédente (dispose = 1). Divise
+  // fortement le poids, la scène restant majoritairement immobile.
+  const gif = GIFEncoder();
+  const frameDelay = Math.round(1000 / GIF.fps);
+  let previous = null; // indices de la dernière image affichée
+  let pending = null; // image en attente, allongée tant qu'elle se répète
+  const flush = () => {
+    if (!pending) return;
+    const index = applyPalette(PNG.sync.read(pending.png).data, palette);
+    let toWrite = index;
+    if (previous) {
+      toWrite = new Uint8Array(index);
+      for (let i = 0; i < index.length; i++) if (index[i] === previous[i]) toWrite[i] = transparentIndex;
+    }
+    gif.writeFrame(toWrite, GIF.width, GIF.height, {
+      ...(previous ? { transparent: true, transparentIndex } : { palette, repeat: 0 }),
+      dispose: 1,
+      delay: pending.delay,
+    });
+    previous = index;
+  };
+  for (const png of frames) {
+    if (pending && pending.png.equals(png)) {
+      pending.delay += frameDelay;
+      continue;
+    }
+    flush();
+    pending = { png, delay: frameDelay };
+  }
+  flush();
+  gif.finish();
+
+  const out = path.join(OUT, 'promo-en.gif');
+  fs.writeFileSync(out, gif.bytes());
+  const mb = (fs.statSync(out).size / 1024 / 1024).toFixed(1);
+  console.log('✓', path.relative(ROOT, out), `(${mb} Mo, ${frames.length} images)`);
+}
+
+/** Lance Chrome headless et capture chaque image de la scène */
+async function captureFrames(htmlFile) {
+  const { spawn } = await import('node:child_process');
+  const port = 9333;
+  const chrome = spawn(CHROME, [
+    '--headless=new', '--disable-gpu', '--hide-scrollbars', '--force-device-scale-factor=1',
+    `--remote-debugging-port=${port}`, `--user-data-dir=${path.join(BUILD, 'chrome-profile')}`,
+    `--window-size=${GIF.width},${GIF.height}`, 'about:blank',
+  ], { stdio: 'ignore' });
+
+  try {
+    // Attend que DevTools réponde
+    let target;
+    for (let i = 0; i < 50 && !target; i++) {
+      await new Promise((r) => setTimeout(r, 200));
+      try {
+        const list = await (await fetch(`http://127.0.0.1:${port}/json/list`)).json();
+        target = list.find((t) => t.type === 'page');
+      } catch { /* Chrome démarre */ }
+    }
+    if (!target) throw new Error('Chrome DevTools injoignable');
+
+    const ws = new WebSocket(target.webSocketDebuggerUrl);
+    await new Promise((resolve, reject) => { ws.onopen = resolve; ws.onerror = reject; });
+    let nextId = 0;
+    const calls = new Map();
+    ws.onmessage = (e) => {
+      const msg = JSON.parse(e.data);
+      const call = calls.get(msg.id);
+      if (!call) return;
+      calls.delete(msg.id);
+      if (msg.error) call.reject(new Error(msg.error.message));
+      else call.resolve(msg.result);
+    };
+    const send = (method, params = {}) => new Promise((resolve, reject) => {
+      const id = ++nextId;
+      calls.set(id, { resolve, reject });
+      ws.send(JSON.stringify({ id, method, params }));
+    });
+    const evaluate = async (expression) =>
+      (await send('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true })).result.value;
+
+    await send('Emulation.setDeviceMetricsOverride', {
+      width: GIF.width, height: GIF.height, deviceScaleFactor: 1, mobile: false,
+    });
+    await send('Page.navigate', { url: pathToFileURL(htmlFile).href });
+    for (let i = 0; i < 100; i++) {
+      if (await evaluate(`document.readyState === 'complete' && typeof setTime === 'function'`)) break;
+      await new Promise((r) => setTimeout(r, 100));
+    }
+    await evaluate('document.fonts.ready.then(() => { initScene(); return true; })');
+
+    const frames = [];
+    const total = Math.round(GIF.duration * GIF.fps);
+    for (let i = 0; i < total; i++) {
+      await evaluate(`setTime(${(i / GIF.fps).toFixed(3)})`);
+      const { data } = await send('Page.captureScreenshot', { format: 'png' });
+      frames.push(Buffer.from(data, 'base64'));
+    }
+    ws.close();
+    return frames;
+  } finally {
+    chrome.kill();
+  }
+}
+
+/** Scène HTML du GIF (textes en anglais) */
+function promoGifHtml() {
+  const grid = `<div class="native">${TRACKS.slice(0, 6).map((track) => `
+    <div class="native__card"><img src="${cover(track.index, 320, 180)}">
+      <div class="native__title">${escapeHtml(track.title)}</div>
+      <div class="native__meta">${escapeHtml(track.artist)} · 12K views</div></div>`).join('')}</div>`;
+
+  const content = `
+    <div class="views">
+      <div class="view view--grid">${grid}</div>
+      <div class="view view--list">${tracklist(TRACKS.slice(0, 8))}</div>
+    </div>
+    ${widget(TRACKS[1])}`;
+
+  // Pistes jouées pendant la démo (lignes 2 puis 3)
+  const demoTracks = [1, 2].map((i) => ({
+    title: TRACKS[i].title,
+    artist: TRACKS[i].artist,
+    duration: TRACKS[i].duration,
+    cover: cover(TRACKS[i].index, 348, 196),
+  }));
+
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><style>${BASE_CSS}
+    body { background: radial-gradient(700px 420px at 90% 0%, ${BRAND.redGlow}, transparent 70%), ${BRAND.night}; }
+    *, *::before, *::after { transition: none !important; }
+    #ytp-tracklist-root { animation: none !important; }
+    .ytp-tl-eq i { animation-play-state: paused !important; }
+    .frame { position: absolute; inset: 16px; }
+    .frame .browser { width: 100% !important; height: 100% !important; }
+    .masthead__search { width: 38%; }
+    .views { position: relative; }
+    .view { position: absolute; inset: 0 0 auto 0; }
+    .native { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px 14px; padding: 4px 8px; }
+    .native__card img { width: 100%; aspect-ratio: 16/9; border-radius: 8px; display: block; }
+    .native__title { margin-top: 8px; font-size: 13px; font-weight: 600; line-height: 1.3; color: #f1f1f1; }
+    .native__meta { margin-top: 3px; font-size: 12px; color: #aaa; }
+    /* Survol simulé : le curseur est dessiné, il n'y a pas de vraie souris */
+    .ytp-tl-row.sim-hover { background: rgba(255,255,255,0.06); }
+    .ytp-tl-row.sim-hover .ytp-tl-index-num { opacity: 0; }
+    .ytp-tl-row.sim-hover .ytp-tl-play-btn { opacity: 1; transform: scale(1); }
+    .ytp-w-btn.sim-hover { color: #fff; background: rgba(255,255,255,0.08); }
+    /* Au-dessus du lecteur, dont le z-index est très élevé (99999) */
+    #cursor { position: fixed; left: 0; top: 0; width: 22px; height: 22px; z-index: 2147483647; pointer-events: none;
+      filter: drop-shadow(0 2px 3px rgba(0,0,0,0.6)); }
+    #ripple { position: fixed; width: 34px; height: 34px; margin: -17px 0 0 -17px; border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.9); z-index: 2147483646; pointer-events: none; opacity: 0; }
+    .endcard { position: fixed; inset: 0; z-index: 2147483645; display: flex; flex-direction: column; align-items: center;
+      justify-content: center; gap: 18px; opacity: 0;
+      background: radial-gradient(600px 380px at 50% 30%, ${BRAND.redGlow}, transparent 70%), ${BRAND.night}; }
+    .endcard img { width: 120px; height: 120px; }
+    .endcard h2 { margin: 0; font-size: 52px; font-weight: 800; letter-spacing: -0.03em; }
+    .endcard p { margin: 0; font-size: 22px; color: #d4d4d8; }
+    .endcard p em { font-style: normal; color: ${BRAND.red}; font-weight: 700; }
+    .endcard .chips { display: flex; gap: 10px; margin-top: 6px; }
+    .endcard .chip { font-size: 15px; font-weight: 600; color: #e4e4e7; padding: 7px 14px; border-radius: 99px;
+      background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.1); }
+  </style></head><body>
+    <div class="frame">${browserWindow(content, { width: GIF.width - 32, height: GIF.height - 32, toggleOn: false })}</div>
+    <div class="endcard">
+      <img src="${LOGO_URI}">
+      <h2>YouTube Audio Player</h2>
+      <p>Browse music and <em>type beats</em> on YouTube, faster.</p>
+      <div class="chips"><span class="chip">Free</span><span class="chip">Open source</span><span class="chip">Chrome extension</span></div>
+    </div>
+    <div id="ripple"></div>
+    <svg id="cursor" viewBox="0 0 24 24"><path d="M4 2l15 11.5-6.6.9 3.9 7.6-3 1.5-3.9-7.7L4 20.5z" fill="#fff" stroke="#111" stroke-width="1.3" stroke-linejoin="round"/></svg>
+    <script>${promoGifScript(demoTracks)}</script>
+  </body></html>`;
+}
+
+/** Animation de la scène : setTime(t) place tous les éléments à l'instant t (secondes) */
+function promoGifScript(demoTracks) {
+  return `
+    const TRACK_DATA = ${JSON.stringify(demoTracks)};
+    const $ = (s) => document.querySelector(s);
+    const clamp = (v) => Math.max(0, Math.min(1, v));
+    const ease = (p) => (p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2);
+    const lerp = (a, b, p) => a + (b - a) * p;
+    const fmt = (s) => Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
+    const toSec = (d) => d.split(':').reduce((a, b) => a * 60 + Number(b), 0);
+    const center = (el) => { const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; };
+
+    let T, KEYS, rows, widgetEl;
+
+    function initScene() {
+      widgetEl = $('#ytp-player-widget');
+      rows = [...document.querySelectorAll('.ytp-tl-row')];
+      // Positions mesurées avec le lecteur visible et la jauge de volume ouverte
+      widgetEl.classList.add('ytp-w--visible');
+      $('#ytp-w-vol').classList.add('ytp-w-vol--dragging');
+      const bar = $('#ytp-w-volume').getBoundingClientRect();
+      T = {
+        start: { x: 560, y: 470 },
+        toggle: center($('.masthead #ytp-mode-toggle .ytp-toggle__switch')),
+        row2: center(rows[1].querySelector('.ytp-tl-cell--index')),
+        vol: center($('#ytp-w-mute')),
+        volLow: { x: bar.left + bar.width / 2, y: bar.bottom - bar.height * 0.55 },
+        volHigh: { x: bar.left + bar.width / 2, y: bar.bottom - bar.height * 0.9 },
+        next: center($('#ytp-w-next')),
+        repeat: center($('#ytp-w-repeat')),
+        bar: { bottom: bar.bottom, height: bar.height },
+      };
+      // Trajet du curseur : [temps, position]
+      KEYS = [
+        [0.0, T.start], [0.9, T.toggle], [1.3, T.toggle], [2.0, T.row2], [2.4, T.row2],
+        [3.3, T.vol], [3.7, T.vol], [3.9, T.volLow], [4.7, T.volHigh], [4.9, T.volHigh],
+        [5.5, T.next], [5.8, T.next], [6.6, T.repeat], [7.6, T.repeat],
+      ];
+    }
+
+    function cursorAt(t) {
+      for (let i = 0; i < KEYS.length - 1; i++) {
+        const [t0, a] = KEYS[i];
+        const [t1, b] = KEYS[i + 1];
+        if (t <= t1) {
+          const p = ease(clamp((t - t0) / (t1 - t0)));
+          return { x: lerp(a.x, b.x, p), y: lerp(a.y, b.y, p) };
+        }
+      }
+      return KEYS[KEYS.length - 1][1];
+    }
+
+    const CLICKS = [1.0, 2.2, 3.9, 5.7, 6.8];
+
+    window.setTime = (t) => {
+      const c = cursorAt(t);
+      const cursor = $('#cursor');
+      cursor.style.transform = 'translate(' + (c.x - 4) + 'px,' + (c.y - 2) + 'px)';
+      cursor.style.opacity = String(1 - clamp((t - 7.6) / 0.3));
+
+      // Onde de clic
+      const click = CLICKS.find((ct) => t >= ct && t < ct + 0.35);
+      const ripple = $('#ripple');
+      if (click !== undefined) {
+        const p = (t - click) / 0.35;
+        ripple.style.left = c.x + 'px';
+        ripple.style.top = c.y + 'px';
+        ripple.style.opacity = String(1 - p);
+        ripple.style.transform = 'scale(' + (0.4 + p) + ')';
+      } else {
+        ripple.style.opacity = '0';
+      }
+
+      // Mode liste
+      $('.masthead #ytp-mode-toggle').classList.toggle('ytp-toggle--on', t >= 1.0);
+      const pList = ease(clamp((t - 1.0) / 0.35));
+      $('.view--grid').style.opacity = String(1 - pList);
+      $('.view--list').style.opacity = String(pList);
+
+      // Piste en cours
+      const trackIdx = t >= 5.7 ? 2 : t >= 2.2 ? 1 : -1;
+      rows.forEach((r, i) => {
+        const active = i === trackIdx;
+        r.classList.toggle('ytp-tl-row--active', active);
+        r.classList.toggle('ytp-tl-row--playing', active);
+        r.classList.toggle('sim-hover', i === 1 && t >= 2.0 && t < 2.2);
+        r.querySelectorAll('.ytp-tl-eq i').forEach((b, j) => { b.style.animationDelay = (-(t + j * 0.37)) + 's'; });
+      });
+
+      // Lecteur
+      const pWidget = ease(clamp((t - 2.2) / 0.3));
+      widgetEl.classList.toggle('ytp-w--visible', t >= 2.2);
+      widgetEl.style.opacity = String(pWidget);
+      widgetEl.style.transform = 'translateY(' + (14 * (1 - pWidget)) + 'px)';
+      if (trackIdx > 0) {
+        const data = TRACK_DATA[trackIdx - 1];
+        $('#ytp-w-title').textContent = data.title;
+        $('#ytp-w-artist').textContent = data.artist;
+        const img = $('#ytp-page-player img');
+        if (img && img.dataset.cover !== data.cover) { img.src = data.cover; img.dataset.cover = data.cover; }
+        const start = trackIdx === 1 ? 2.2 : 5.7;
+        const shown = 3 + (t - start) * 9; // lecture accélérée pour que la progression se voie
+        $('#ytp-w-progress').style.setProperty('--progress', (shown / toSec(data.duration) * 100) + '%');
+        $('#ytp-w-current').textContent = fmt(shown);
+        $('#ytp-w-duration').textContent = data.duration;
+      }
+      $('#ytp-w-repeat').classList.toggle('ytp-w-btn--on', t >= 6.8);
+
+      // Volume : jauge ouverte au survol, glissée vers le haut
+      const volOpen = t >= 3.6 && t < 5.0;
+      $('#ytp-w-vol').classList.toggle('ytp-w-vol--dragging', volOpen);
+      const vol = t < 3.9 ? 55 : t < 4.7 ? clamp((T.bar.bottom - c.y) / T.bar.height) * 100 : 90;
+      $('#ytp-w-volume').style.setProperty('--volume', Math.round(vol) + '%');
+
+      const near = (p) => Math.hypot(c.x - p.x, c.y - p.y) < 14;
+      $('#ytp-w-next').classList.toggle('sim-hover', near(T.next));
+      $('#ytp-w-repeat').classList.toggle('sim-hover', near(T.repeat) && t < 7.6);
+      $('#ytp-w-mute').classList.toggle('sim-hover', near(T.vol) && !volOpen);
+
+      // Écran de fin
+      $('.endcard').style.opacity = String(ease(clamp((t - 7.7) / 0.4)));
+      return true;
+    };`;
 }
